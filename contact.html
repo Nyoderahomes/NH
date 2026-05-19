@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us - Nyodera Heights</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-wrapper">
+                <div class="logo">
+                    <a href="index.html"><img src="https://res.cloudinary.com/dqxlb29uz/image/upload/v1779035728/bwm_uploads/media-1779035727942.jpg" alt="Nyodera Heights logo"></a>
+                </div>
+                <ul class="nav-links">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="listings.html">Listings</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="contact.html" class="active">Contact</a></li>
+                    <li><a href="payments.html">Payments</a></li>
+                    <li><a href="login.html">Login</a></li>
+                    <li><a href="signup.html">Sign Up</a></li>
+                </ul>
+                <div class="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Header -->
+    <section class="page-header">
+        <div class="container">
+            <h1>Contact Us</h1>
+            <p>We'd love to hear from you. Get in touch with our team.</p>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section class="contact-section">
+        <div class="container">
+            <div class="contact-wrapper">
+                <!-- Contact Form -->
+                <div class="contact-form-wrapper">
+                    <h2>Send us a Message</h2>
+                    <form class="contact-form" id="contact-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="name">Full Name *</label>
+                                <input type="text" id="name" name="name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="email">Email Address *</label>
+                                <input type="email" id="email" name="email" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="phone">Phone Number</label>
+                                <input type="tel" id="phone" name="phone">
+                            </div>
+                            <div class="form-group">
+                                <label for="subject">Subject *</label>
+                                <select id="subject" name="subject" required>
+                                    <option value="">Select a subject</option>
+                                    <option value="inquiry">General Inquiry</option>
+                                    <option value="booking">Booking Question</option>
+                                    <option value="property">Property Information</option>
+                                    <option value="support">Customer Support</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="message">Message *</label>
+                            <textarea id="message" name="message" rows="6" required></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" name="newsletter" id="newsletter">
+                                Subscribe to our newsletter for updates and special offers
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn-primary">Send Message</button>
+                    </form>
+                    <div id="form-message" class="form-message"></div>
+                </div>
+
+                <!-- Contact Info -->
+                <div class="contact-info-wrapper">
+                    <h2>Get in Touch</h2>
+                    
+                    <div class="info-card">
+                        <div class="info-icon">📍</div>
+                        <div class="info-content">
+                            <h3>Our Address</h3>
+                            <p>123 Luxury Avenue<br>Downtown District<br>City Center, ST 12345</p>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <div class="info-icon">📞</div>
+                        <div class="info-content">
+                            <h3>Phone Number</h3>
+                            <p>Main: <a href="tel:+15551234567">(555) 123-4567</a></p>
+                            <p>Reservations: <a href="tel:+15559876543">(555) 987-6543</a></p>
+                            <p>Support: <a href="tel:+15555555555">(555) 555-5555</a></p>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <div class="info-icon">✉️</div>
+                        <div class="info-content">
+                            <h3>Email Address</h3>
+                            <p>General: <a href="mailto:info@nyoderaheights.com">info@nyoderaheights.com</a></p>
+                            <p>Reservations: <a href="mailto:book@nyoderaheights.com">book@nyoderaheights.com</a></p>
+                            <p>Support: <a href="mailto:support@nyoderaheights.com">support@nyoderaheights.com</a></p>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <div class="info-icon">🕐</div>
+                        <div class="info-content">
+                            <h3>Business Hours</h3>
+                            <p>Monday - Friday: 8:00 AM - 8:00 PM</p>
+                            <p>Saturday: 10:00 AM - 6:00 PM</p>
+                            <p>Sunday: 12:00 PM - 5:00 PM</p>
+                            <p style="margin-top: 10px; font-size: 0.9em; color: #666;">24/7 Emergency Support Available</p>
+                        </div>
+                    </div>
+
+                    <div class="social-section">
+                        <h3>Follow Us</h3>
+                        <div class="social-links-large">
+                            <a href="#" class="social-link">
+                                <span class="social-icon">f</span>
+                                <span>Facebook</span>
+                            </a>
+                            <a href="#" class="social-link">
+                                <span class="social-icon">𝕏</span>
+                                <span>Twitter</span>
+                            </a>
+                            <a href="#" class="social-link">
+                                <span class="social-icon">📷</span>
+                                <span>Instagram</span>
+                            </a>
+                            <a href="#" class="social-link">
+                                <span class="social-icon">in</span>
+                                <span>LinkedIn</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Map Section -->
+    <section class="map-section">
+        <h2>Visit Our Office</h2>
+        <div class="map-container">
+            <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3024.3126289825896!2d-74.01601592346902!3d40.71312107138889!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89c25a22f2e15db1%3A0x4ac8b0e0b3c3f8!2sEmpire%20State%20Building!5e0!3m2!1sen!2sus!4v1234567890123" allowfullscreen="" loading="lazy"></iframe>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="faq-section">
+        <div class="container">
+            <h2>Frequently Asked Questions</h2>
+            <div class="faq-grid">
+                <div class="faq-item">
+                    <h3>What is your cancellation policy?</h3>
+                    <p>We offer flexible cancellation options. Most properties allow cancellation up to 48 hours before check-in for a full refund. Please check individual property policies for specific details.</p>
+                </div>
+                <div class="faq-item">
+                    <h3>Do you offer long-term discounts?</h3>
+                    <p>Yes! We offer special rates for stays of 30 days or more. Contact our reservations team for personalized quotes.</p>
+                </div>
+                <div class="faq-item">
+                    <h3>Are pets allowed?</h3>
+                    <p>Most of our properties are pet-friendly, but policies vary. Check the amenities section of each property or contact us for details.</p>
+                </div>
+                <div class="faq-item">
+                    <h3>Is parking included?</h3>
+                    <p>Parking availability and pricing vary by location. Refer to the property details or contact our team for specific information.</p>
+                </div>
+                <div class="faq-item">
+                    <h3>What payment methods do you accept?</h3>
+                    <p>We accept all major credit cards, debit cards, bank transfers, and digital payment methods. Payment is secure and processed through our secure gateway.</p>
+                </div>
+                <div class="faq-item">
+                    <h3>How quickly will my inquiry be answered?</h3>
+                    <p>We aim to respond to all inquiries within 24 hours during business days. For urgent matters, please call our 24/7 support line.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section class="services">
+        <div class="container">
+            <h2>Our Services</h2>
+            <p class="section-subtitle">What we offer to make your stay comfortable</p>
+            <div class="services-grid">
+                <div class="service-card">
+                    <div class="service-icon">🏠</div>
+                    <h3>Furnished Apartments</h3>
+                    <p>Fully equipped apartments with premium furniture and modern amenities for long-term rentals.</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">🌍</div>
+                    <h3>Short-Term Stays</h3>
+                    <p>Flexible booking for travelers and tourists seeking comfortable, convenient accommodations.</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">✨</div>
+                    <h3>Premium Maintenance</h3>
+                    <p>24/7 maintenance support and housekeeping services to ensure your comfort.</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">🔐</div>
+                    <h3>Secure & Safe</h3>
+                    <p>State-of-the-art security systems and verified guests for peace of mind.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="about">
+        <div class="container">
+            <div class="about-content">
+                <div class="about-text">
+                    <h2>About Nyodera Heights</h2>
+                    <p>Nyodera Heights is a premier provider of luxury furnished apartments and Airbnb services. With over a decade of experience in the hospitality industry, we specialize in providing exceptional living spaces for both long-term residents and short-term visitors.</p>
+                    <p>Our properties are meticulously maintained and strategically located in prime areas of the city. Each apartment is designed with comfort, style, and functionality in mind, featuring high-end furnishings and modern amenities.</p>
+                    <ul class="about-features">
+                        <li>✓ 150+ Premium Properties</li>
+                        <li>✓ 10,000+ Satisfied Guests</li>
+                        <li>✓ 24/7 Customer Support</li>
+                        <li>✓ 100% Satisfaction Guarantee</li>
+                    </ul>
+                </div>
+                <div class="about-image">
+                    <img src="https://via.placeholder.com/500x400?text=About+Nyodera+Heights" alt="About Nyodera Heights">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="testimonials">
+        <div class="container">
+            <h2>Guest Testimonials</h2>
+            <p class="section-subtitle">What our guests say about us</p>
+            <div class="testimonials-grid">
+                <div class="testimonial-card">
+                    <div class="stars">★★★★★</div>
+                    <p>"Amazing stay! The apartment was incredibly clean, well-furnished, and the location was perfect. The staff was very responsive and helpful throughout my visit."</p>
+                    <p class="testimonial-author">- Sarah Mitchell</p>
+                </div>
+                <div class="testimonial-card">
+                    <div class="stars">★★★★★</div>
+                    <p>"Exceeded all my expectations. The amenities are top-notch, and the entire experience was seamless from booking to checkout. Highly recommended!"</p>
+                    <p class="testimonial-author">- John Chen</p>
+                </div>
+                <div class="testimonial-card">
+                    <div class="stars">★★★★★</div>
+                    <p>"My corporate apartment booking was handled professionally. Everything I needed was provided, and the service was exceptional. Will definitely book again."</p>
+                    <p class="testimonial-author">- Emma Rodriguez</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>Nyodera Heights</h4>
+                    <p>Premium furnished apartments & Airbnb services</p>
+                    <div class="social-links">
+                        <a href="#" title="Facebook">f</a>
+                        <a href="#" title="Twitter">𝕏</a>
+                        <a href="#" title="Instagram">📷</a>
+                        <a href="#" title="LinkedIn">in</a>
+                    </div>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="listings.html">Properties</a></li>
+                        <li><a href="about.html">About Us</a></li>
+                        <li><a href="contact.html">Contact</a></li>
+                        <li><a href="#">Blog</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                        <li><a href="#">FAQ</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Contact Info</h4>
+                    <p>📍 123 Luxury Avenue, Downtown</p>
+                    <p>📞 (555) 123-4567</p>
+                    <p>✉️ info@nyoderaheights.com</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Nyodera Heights. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

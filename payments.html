@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payments - Nyodera Heights</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-wrapper">
+                <div class="logo">
+                    <a href="index.html"><img src="https://res.cloudinary.com/dqxlb29uz/image/upload/v1779035728/bwm_uploads/media-1779035727942.jpg" alt="Nyodera Heights logo"></a>
+                </div>
+                <ul class="nav-links">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="listings.html">Listings</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                    <li><a href="payments.html" class="active">Payments</a></li>
+                    <li><a href="login.html">Login</a></li>
+                    <li><a href="signup.html">Sign Up</a></li>
+                </ul>
+                <div class="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <section class="page-header">
+        <div class="container">
+            <h1>Payments</h1>
+            <p>Make a secure payment for your booking</p>
+        </div>
+    </section>
+
+    <section class="contact-section">
+        <div class="container">
+            <div class="contact-wrapper">
+                <div class="contact-form-wrapper">
+                    <h2>Payment Details</h2>
+                    <form id="payment-form" class="contact-form">
+                        <div class="form-group">
+                            <label for="pay-method">Payment Method</label>
+                            <select id="pay-method" required>
+                                <option value="card">Card</option>
+                                <option value="stripe">Stripe</option>
+                                <option value="paypal">PayPal</option>
+                                <option value="mpesa">M-Pesa</option>
+                            </select>
+                        </div>
+                        <div id="card-fields">
+                            <div class="form-group">
+                                <label for="pay-name">Cardholder Name</label>
+                                <input type="text" id="pay-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="pay-number">Card Number</label>
+                                <input type="text" id="pay-number" maxlength="19" placeholder="4242 4242 4242 4242" required>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="pay-exp">Expiry (MM/YY)</label>
+                                    <input type="text" id="pay-exp" maxlength="5" placeholder="MM/YY" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="pay-cvv">CVV</label>
+                                    <input type="text" id="pay-cvv" maxlength="4" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group" id="mpesa-field" style="display:none;">
+                            <label for="pay-mpesa-phone">M-Pesa Phone Number</label>
+                            <input type="text" id="pay-mpesa-phone" placeholder="e.g. +254712345678">
+                        </div>
+                        <div class="form-group" id="amount-field">
+                            <label for="pay-amount">Amount (USD)</label>
+                            <input type="number" id="pay-amount" min="1" value="100" required>
+                        </div>
+                        <button type="submit" class="btn-primary">Pay Now</button>
+                        <div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+                            <button id="stripe-checkout" type="button" class="btn-primary">Pay with Stripe</button>
+                            <button id="mpesa-checkout" type="button" class="btn-primary">Pay with M-Pesa</button>
+                            <div id="paypal-button-container"></div>
+                        </div>
+                    </form>
+                    <div id="payment-message" class="form-message"></div>
+                    <div class="payment-history-panel" style="margin-top:18px">
+                        <h3>Payment History</h3>
+                        <div id="payments-history">
+                            <!-- populated by JS -->
+                        </div>
+                        <button id="toggle-payments-visibility" class="btn-secondary" style="margin-top:10px">Hide History</button>
+                    </div>
+                </div>
+                <div class="contact-info-wrapper">
+                    <h2>Payment Info</h2>
+                    <p>For this demo, card details are not sent to any server. Use test card numbers. For real payments, integrate a PCI-compliant provider (Stripe, PayPal, M-Pesa, etc.).</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <p>&copy; 2026 Nyodera Heights. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Stripe.js (loaded before our app script) -->
+    <script src="https://js.stripe.com/v3/"></script>
+    <script>
+        // Payments server base (include protocol + host + port), e.g. http://localhost:4242
+        window.PAYMENTS_SERVER = 'http://localhost:4242';
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>

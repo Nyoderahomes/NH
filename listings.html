@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Listings - Nyodera Heights</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-wrapper">
+                <div class="logo">
+                    <a href="index.html"><img src="https://res.cloudinary.com/dqxlb29uz/image/upload/v1779035728/bwm_uploads/media-1779035727942.jpg" alt="Nyodera Heights logo"></a>
+                </div>
+                <ul class="nav-links">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="listings.html" class="active">Listings</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                    <li><a href="payments.html">Payments</a></li>
+                    <li><a href="login.html">Login</a></li>
+                    <li><a href="signup.html">Sign Up</a></li>
+                </ul>
+                <div class="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Header -->
+    <section class="page-header">
+        <div class="container">
+            <h1>All Properties</h1>
+            <p>Find your perfect apartment at Nyodera Heights</p>
+        </div>
+    </section>
+
+    <!-- Listings Section -->
+    <section class="listings-section">
+        <div class="container">
+            <div class="listings-wrapper">
+                <!-- Filters Sidebar -->
+                <aside class="filters-sidebar">
+                    <h3>Filters</h3>
+                    
+                    <div class="filter-group">
+                        <label for="price-filter">Price Range</label>
+                        <input type="range" id="price-filter" min="1000" max="10000" value="5000">
+                        <p class="price-display">Up to $<span id="price-value">5000</span>/month</p>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="bedrooms">Bedrooms</label>
+                        <select id="bedrooms">
+                            <option value="">All</option>
+                            <option value="studio">Studio</option>
+                            <option value="1">1 Bedroom</option>
+                            <option value="2">2 Bedrooms</option>
+                            <option value="3">3 Bedrooms</option>
+                            <option value="4">4+ Bedrooms</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="amenities">Amenities</label>
+                        <div class="amenities-list">
+                            <label><input type="checkbox" value="wifi"> WiFi</label>
+                            <label><input type="checkbox" value="gym"> Gym</label>
+                            <label><input type="checkbox" value="pool"> Pool</label>
+                            <label><input type="checkbox" value="parking"> Parking</label>
+                            <label><input type="checkbox" value="aircon"> Air Conditioning</label>
+                            <label><input type="checkbox" value="laundry"> Laundry</label>
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="location">Location</label>
+                        <select id="location">
+                            <option value="">All Locations</option>
+                            <option value="downtown">Downtown District</option>
+                            <option value="midtown">Midtown Elegance</option>
+                            <option value="uptown">Uptown Heights</option>
+                            <option value="waterfront">Waterfront Plaza</option>
+                        </select>
+                    </div>
+
+                    <button class="btn-primary" id="apply-filters">Apply Filters</button>
+                    <button class="btn-secondary" id="clear-filters">Clear All</button>
+                </aside>
+
+                <!-- Properties Grid -->
+                <div class="listings-grid">
+                    <!-- Property 1 -->
+                    <div class="listing-card">
+                        <div class="listing-image">
+                            <img src="https://via.placeholder.com/400x300?text=Studio+Apartment" alt="Studio Apartment">
+                            <span class="listing-badge">Featured</span>
+                        </div>
+                        <div class="listing-content">
+                            <h3>Cozy Studio Apartment</h3>
+                            <p class="listing-location">📍 Downtown District</p>
+                            <p class="listing-price">$2,500/month</p>
+                            <div class="listing-specs">
+                                <span>🛏️ Studio</span>
+                                <span>🚿 1 Bath</span>
+                                <span>📐 450 sq ft</span>
+                            </div>
+                            <p class="listing-description">Beautiful studio apartment with modern furnishings, updated kitchen, and stunning city views.</p>
+                            <a href="property-detail.html?id=1" class="btn-secondary">View Details</a>
+                        </div>
+                    </div>
+
+                    <!-- Property 2 -->
+                    <div class="listing-card">
+                        <div class="listing-image">
+                            <img src="https://via.placeholder.com/400x300?text=One+Bedroom" alt="One Bedroom">
+                        </div>
+                        <div class="listing-content">
+                            <h3>Elegant One Bedroom</h3>
+                            <p class="listing-location">📍 Midtown Elegance</p>
+                            <p class="listing-price">$3,200/month</p>
+                            <div class="listing-specs">
+                                <span>🛏️ 1 Bed</span>
+                                <span>🚿 1 Bath</span>
+                                <span>📐 750 sq ft</span>
+                            </div>
+                            <p class="listing-description">Spacious one-bedroom with separate living area, fully equipped kitchen, and premium finishes.</p>
+                            <a href="property-detail.html?id=2" class="btn-secondary">View Details</a>
+                        </div>
+                    </div>
+
+                    <!-- Property 3 -->
+                    <div class="listing-card">
+                        <div class="listing-image">
+                            <img src="https://via.placeholder.com/400x300?text=Two+Bedroom" alt="Two Bedroom">
+                        </div>
+                        <div class="listing-content">
+                            <h3>Premium Two Bedroom</h3>
+                            <p class="listing-location">📍 Highrise Avenue</p>
+                            <p class="listing-price">$4,500/month</p>
+                            <div class="listing-specs">
+                                <span>🛏️ 2 Beds</span>
+                                <span>🚿 2 Baths</span>
+                                <span>📐 1,000 sq ft</span>
+                            </div>
+                            <p class="listing-description">Luxurious two-bedroom apartment with master suite, guest bedroom, and expansive living space.</p>
+                            <a href="property-detail.html?id=3" class="btn-secondary">View Details</a>
+                        </div>
+                    </div>
+
+                    <!-- Property 4 -->
+                    <div class="listing-card">
+                        <div class="listing-image">
+                            <img src="https://via.placeholder.com/400x300?text=Luxury+Two+Bedroom" alt="Luxury Two Bedroom">
+                            <span class="listing-badge new">New</span>
+                        </div>
+                        <div class="listing-content">
+                            <h3>Luxury Two Bedroom Penthouse</h3>
+                            <p class="listing-location">📍 Waterfront Plaza</p>
+                            <p class="listing-price">$5,800/month</p>
+                            <div class="listing-specs">
+                                <span>🛏️ 2 Beds</span>
+                                <span>🚿 2 Baths</span>
+                                <span>📐 1,200 sq ft</span>
+                            </div>
+                            <p class="listing-description">Exclusive waterfront penthouse with panoramic views, private balcony, and state-of-the-art amenities.</p>
+                            <a href="property-detail.html?id=4" class="btn-secondary">View Details</a>
+                        </div>
+                    </div>
+
+                    <!-- Property 5 -->
+                    <div class="listing-card">
+                        <div class="listing-image">
+                            <img src="https://via.placeholder.com/400x300?text=Three+Bedroom" alt="Three Bedroom">
+                        </div>
+                        <div class="listing-content">
+                            <h3>Spacious Three Bedroom</h3>
+                            <p class="listing-location">📍 Uptown Heights</p>
+                            <p class="listing-price">$6,500/month</p>
+                            <div class="listing-specs">
+                                <span>🛏️ 3 Beds</span>
+                                <span>🚿 2 Baths</span>
+                                <span>📐 1,400 sq ft</span>
+                            </div>
+                            <p class="listing-description">Perfect for families or groups. Three bedrooms, spacious living area, and modern amenities throughout.</p>
+                            <a href="property-detail.html?id=5" class="btn-secondary">View Details</a>
+                        </div>
+                    </div>
+
+                    <!-- Property 6 -->
+                    <div class="listing-card">
+                        <div class="listing-image">
+                            <img src="https://via.placeholder.com/400x300?text=Modern+Studio" alt="Modern Studio">
+                        </div>
+                        <div class="listing-content">
+                            <h3>Modern Studio with Balcony</h3>
+                            <p class="listing-location">📍 Downtown District</p>
+                            <p class="listing-price">$2,800/month</p>
+                            <div class="listing-specs">
+                                <span>🛏️ Studio</span>
+                                <span>🚿 1 Bath</span>
+                                <span>📐 550 sq ft</span>
+                            </div>
+                            <p class="listing-description">Contemporary studio with private balcony, high ceilings, and access to building amenities.</p>
+                            <a href="property-detail.html?id=6" class="btn-secondary">View Details</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination">
+                <button class="btn-pagination">← Previous</button>
+                <button class="btn-pagination active">1</button>
+                <button class="btn-pagination">2</button>
+                <button class="btn-pagination">3</button>
+                <button class="btn-pagination">Next →</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section class="services">
+        <div class="container">
+            <h2>Our Services</h2>
+            <p class="section-subtitle">What we offer to make your stay comfortable</p>
+            <div class="services-grid">
+                <div class="service-card">
+                    <div class="service-icon">🏠</div>
+                    <h3>Furnished Apartments</h3>
+                    <p>Fully equipped apartments with premium furniture and modern amenities for long-term rentals.</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">🌍</div>
+                    <h3>Short-Term Stays</h3>
+                    <p>Flexible booking for travelers and tourists seeking comfortable, convenient accommodations.</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">✨</div>
+                    <h3>Premium Maintenance</h3>
+                    <p>24/7 maintenance support and housekeeping services to ensure your comfort.</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">🔐</div>
+                    <h3>Secure & Safe</h3>
+                    <p>State-of-the-art security systems and verified guests for peace of mind.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="about">
+        <div class="container">
+            <div class="about-content">
+                <div class="about-text">
+                    <h2>About Nyodera Heights</h2>
+                    <p>Nyodera Heights is a premier provider of luxury furnished apartments and Airbnb services. With over a decade of experience in the hospitality industry, we specialize in providing exceptional living spaces for both long-term residents and short-term visitors.</p>
+                    <p>Our properties are meticulously maintained and strategically located in prime areas of the city. Each apartment is designed with comfort, style, and functionality in mind, featuring high-end furnishings and modern amenities.</p>
+                    <ul class="about-features">
+                        <li>✓ 150+ Premium Properties</li>
+                        <li>✓ 10,000+ Satisfied Guests</li>
+                        <li>✓ 24/7 Customer Support</li>
+                        <li>✓ 100% Satisfaction Guarantee</li>
+                    </ul>
+                </div>
+                <div class="about-image">
+                    <img src="https://via.placeholder.com/500x400?text=About+Nyodera+Heights" alt="About Nyodera Heights">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="testimonials">
+        <div class="container">
+            <h2>Guest Testimonials</h2>
+            <p class="section-subtitle">What our guests say about us</p>
+            <div class="testimonials-grid">
+                <div class="testimonial-card">
+                    <div class="stars">★★★★★</div>
+                    <p>"Amazing stay! The apartment was incredibly clean, well-furnished, and the location was perfect. The staff was very responsive and helpful throughout my visit."</p>
+                    <p class="testimonial-author">- Sarah Mitchell</p>
+                </div>
+                <div class="testimonial-card">
+                    <div class="stars">★★★★★</div>
+                    <p>"Exceeded all my expectations. The amenities are top-notch, and the entire experience was seamless from booking to checkout. Highly recommended!"</p>
+                    <p class="testimonial-author">- John Chen</p>
+                </div>
+                <div class="testimonial-card">
+                    <div class="stars">★★★★★</div>
+                    <p>"My corporate apartment booking was handled professionally. Everything I needed was provided, and the service was exceptional. Will definitely book again."</p>
+                    <p class="testimonial-author">- Emma Rodriguez</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>Nyodera Heights</h4>
+                    <p>Premium furnished apartments & Airbnb services</p>
+                    <div class="social-links">
+                        <a href="#" title="Facebook">f</a>
+                        <a href="#" title="Twitter">𝕏</a>
+                        <a href="#" title="Instagram">📷</a>
+                        <a href="#" title="LinkedIn">in</a>
+                    </div>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="listings.html">Properties</a></li>
+                        <li><a href="about.html">About Us</a></li>
+                        <li><a href="contact.html">Contact</a></li>
+                        <li><a href="#">Blog</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                        <li><a href="#">FAQ</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Contact Info</h4>
+                    <p>📍 123 Luxury Avenue, Downtown</p>
+                    <p>📞 (555) 123-4567</p>
+                    <p>✉️ info@nyoderaheights.com</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Nyodera Heights. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Property Details - Nyodera Heights</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-wrapper">
+                <div class="logo">
+                    <a href="index.html"><img src="https://res.cloudinary.com/dqxlb29uz/image/upload/v1779035728/bwm_uploads/media-1779035727942.jpg" alt="Nyodera Heights logo"></a>
+                </div>
+                <ul class="nav-links">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="listings.html">Listings</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                    <li><a href="payments.html">Payments</a></li>
+                    <li><a href="login.html">Login</a></li>
+                    <li><a href="signup.html">Sign Up</a></li>
+                </ul>
+                <div class="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Property Details Section -->
+    <section class="property-details">
+        <div class="container">
+            <div class="property-main">
+                <!-- Image Gallery -->
+                <div class="gallery-section">
+                    <div class="main-image">
+                        <img id="main-image" src="https://via.placeholder.com/800x500?text=Property+Main" alt="Property Main Image">
+                    </div>
+                    <div class="thumbnail-gallery">
+                        <img class="thumbnail active" src="https://via.placeholder.com/150x100?text=Image+1" alt="Image 1" onclick="changeMainImage(this.src)">
+                        <img class="thumbnail" src="https://via.placeholder.com/150x100?text=Image+2" alt="Image 2" onclick="changeMainImage(this.src)">
+                        <img class="thumbnail" src="https://via.placeholder.com/150x100?text=Image+3" alt="Image 3" onclick="changeMainImage(this.src)">
+                        <img class="thumbnail" src="https://via.placeholder.com/150x100?text=Image+4" alt="Image 4" onclick="changeMainImage(this.src)">
+                        <img class="thumbnail" src="https://via.placeholder.com/150x100?text=Image+5" alt="Image 5" onclick="changeMainImage(this.src)">
+                        <img class="thumbnail" src="https://via.placeholder.com/150x100?text=Image+6" alt="Image 6" onclick="changeMainImage(this.src)">
+                    </div>
+                </div>
+
+                <!-- Property Info -->
+                <div class="property-content">
+                    <h1 id="property-title">Luxury Studio Apartment</h1>
+                    <p class="property-location">📍 Downtown District, City Center</p>
+                    <p class="property-price">$2,500<span>/month</span></p>
+
+                    <div class="property-highlights">
+                        <div class="highlight">
+                            <span class="icon">🛏️</span>
+                            <div>
+                                <h4>Bedrooms</h4>
+                                <p id="bedrooms">1</p>
+                            </div>
+                        </div>
+                        <div class="highlight">
+                            <span class="icon">🚿</span>
+                            <div>
+                                <h4>Bathrooms</h4>
+                                <p id="bathrooms">1</p>
+                            </div>
+                        </div>
+                        <div class="highlight">
+                            <span class="icon">📐</span>
+                            <div>
+                                <h4>Square Feet</h4>
+                                <p id="sqft">550 sq ft</p>
+                            </div>
+                        </div>
+                        <div class="highlight">
+                            <span class="icon">📅</span>
+                            <div>
+                                <h4>Available</h4>
+                                <p>Immediate</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="description-section">
+                        <h2>About This Property</h2>
+                        <p>Experience luxury living in this beautifully furnished studio apartment. Located in the heart of the downtown district, this property offers the perfect blend of comfort, style, and convenience. The open-concept design maximizes space utilization while maintaining an elegant aesthetic.</p>
+                    </div>
+
+                    <!-- Amenities -->
+                    <div class="amenities-section">
+                        <h2>Amenities</h2>
+                        <div class="amenities-list-detail">
+                            <div class="amenity-item">✓ WiFi Included</div>
+                            <div class="amenity-item">✓ Air Conditioning</div>
+                            <div class="amenity-item">✓ Fully Equipped Kitchen</div>
+                            <div class="amenity-item">✓ Washing Machine</div>
+                            <div class="amenity-item">✓ Fitness Center Access</div>
+                            <div class="amenity-item">✓ 24/7 Security</div>
+                            <div class="amenity-item">✓ Parking Available</div>
+                            <div class="amenity-item">✓ Pet Friendly</div>
+                            <div class="amenity-item">✓ Housekeeping Service</div>
+                            <div class="amenity-item">✓ 24/7 Maintenance</div>
+                        </div>
+                    </div>
+
+                    <!-- Booking Section -->
+                    <div class="booking-section">
+                        <h2>Reserve This Property</h2>
+                        <form class="booking-form" id="booking-form">
+                            <div class="form-group">
+                                <label for="check-in">Check-in Date</label>
+                                <input type="date" id="check-in" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="check-out">Check-out Date</label>
+                                <input type="date" id="check-out" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="guests">Number of Guests</label>
+                                <select id="guests" required>
+                                    <option value="">Select</option>
+                                    <option value="1">1 Guest</option>
+                                    <option value="2">2 Guests</option>
+                                    <option value="3">3 Guests</option>
+                                    <option value="4">4 Guests</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn-primary">Reserve Now</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Location & Map -->
+            <div class="location-section">
+                <h2>Location</h2>
+                <div class="map-container">
+                    <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3024.3126289825896!2d-74.01601592346902!3d40.71312107138889!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89c25a22f2e15db1%3A0x4ac8b0e0b3c3f8!2sEmpire%20State%20Building!5e0!3m2!1sen!2sus!4v1234567890123" allowfullscreen="" loading="lazy"></iframe>
+                </div>
+                <p>Walking distance to shopping, dining, and entertainment. Excellent public transportation access. Close to major business districts and tourist attractions.</p>
+            </div>
+
+            <!-- Related Properties -->
+            <div class="related-section">
+                <h2>Similar Properties</h2>
+                <div class="properties-grid">
+                    <div class="property-card">
+                        <div class="property-image">
+                            <img src="https://via.placeholder.com/400x300?text=Related+Property+1" alt="Related Property">
+                            <span class="price-tag">$3,200/month</span>
+                        </div>
+                        <div class="property-info">
+                            <h3>One Bedroom Deluxe</h3>
+                            <p class="location">📍 Midtown Elegance</p>
+                            <div class="amenities">
+                                <span class="amenity">🛏️ 1 Bed</span>
+                                <span class="amenity">🚿 1 Bath</span>
+                                <span class="amenity">📐 750 sq ft</span>
+                            </div>
+                            <a href="property-detail.html?id=2" class="btn-secondary">View Details</a>
+                        </div>
+                    </div>
+
+                    <div class="property-card">
+                        <div class="property-image">
+                            <img src="https://via.placeholder.com/400x300?text=Related+Property+2" alt="Related Property">
+                            <span class="price-tag">$2,800/month</span>
+                        </div>
+                        <div class="property-info">
+                            <h3>Modern Studio</h3>
+                            <p class="location">📍 Downtown District</p>
+                            <div class="amenities">
+                                <span class="amenity">🛏️ Studio</span>
+                                <span class="amenity">🚿 1 Bath</span>
+                                <span class="amenity">📐 550 sq ft</span>
+                            </div>
+                            <a href="property-detail.html?id=6" class="btn-secondary">View Details</a>
+                        </div>
+                    </div>
+
+                    <div class="property-card">
+                        <div class="property-image">
+                            <img src="https://via.placeholder.com/400x300?text=Related+Property+3" alt="Related Property">
+                            <span class="price-tag">$4,500/month</span>
+                        </div>
+                        <div class="property-info">
+                            <h3>Two Bedroom Premium</h3>
+                            <p class="location">📍 Highrise Avenue</p>
+                            <div class="amenities">
+                                <span class="amenity">🛏️ 2 Beds</span>
+                                <span class="amenity">🚿 2 Baths</span>
+                                <span class="amenity">📐 1000 sq ft</span>
+                            </div>
+                            <a href="property-detail.html?id=3" class="btn-secondary">View Details</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section class="services">
+        <div class="container">
+            <h2>Our Services</h2>
+            <p class="section-subtitle">What we offer to make your stay comfortable</p>
+            <div class="services-grid">
+                <div class="service-card">
+                    <div class="service-icon">🏠</div>
+                    <h3>Furnished Apartments</h3>
+                    <p>Fully equipped apartments with premium furniture and modern amenities for long-term rentals.</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">🌍</div>
+                    <h3>Short-Term Stays</h3>
+                    <p>Flexible booking for travelers and tourists seeking comfortable, convenient accommodations.</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">✨</div>
+                    <h3>Premium Maintenance</h3>
+                    <p>24/7 maintenance support and housekeeping services to ensure your comfort.</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">🔐</div>
+                    <h3>Secure & Safe</h3>
+                    <p>State-of-the-art security systems and verified guests for peace of mind.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="about">
+        <div class="container">
+            <div class="about-content">
+                <div class="about-text">
+                    <h2>About Nyodera Heights</h2>
+                    <p>Nyodera Heights is a premier provider of luxury furnished apartments and Airbnb services. With over a decade of experience in the hospitality industry, we specialize in providing exceptional living spaces for both long-term residents and short-term visitors.</p>
+                    <p>Our properties are meticulously maintained and strategically located in prime areas of the city. Each apartment is designed with comfort, style, and functionality in mind, featuring high-end furnishings and modern amenities.</p>
+                    <ul class="about-features">
+                        <li>✓ 150+ Premium Properties</li>
+                        <li>✓ 10,000+ Satisfied Guests</li>
+                        <li>✓ 24/7 Customer Support</li>
+                        <li>✓ 100% Satisfaction Guarantee</li>
+                    </ul>
+                </div>
+                <div class="about-image">
+                    <img src="https://via.placeholder.com/500x400?text=About+Nyodera+Heights" alt="About Nyodera Heights">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="testimonials">
+        <div class="container">
+            <h2>Guest Testimonials</h2>
+            <p class="section-subtitle">What our guests say about us</p>
+            <div class="testimonials-grid">
+                <div class="testimonial-card">
+                    <div class="stars">★★★★★</div>
+                    <p>"Amazing stay! The apartment was incredibly clean, well-furnished, and the location was perfect. The staff was very responsive and helpful throughout my visit."</p>
+                    <p class="testimonial-author">- Sarah Mitchell</p>
+                </div>
+                <div class="testimonial-card">
+                    <div class="stars">★★★★★</div>
+                    <p>"Exceeded all my expectations. The amenities are top-notch, and the entire experience was seamless from booking to checkout. Highly recommended!"</p>
+                    <p class="testimonial-author">- John Chen</p>
+                </div>
+                <div class="testimonial-card">
+                    <div class="stars">★★★★★</div>
+                    <p>"My corporate apartment booking was handled professionally. Everything I needed was provided, and the service was exceptional. Will definitely book again."</p>
+                    <p class="testimonial-author">- Emma Rodriguez</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>Nyodera Heights</h4>
+                    <p>Premium furnished apartments & Airbnb services</p>
+                    <div class="social-links">
+                        <a href="#" title="Facebook">f</a>
+                        <a href="#" title="Twitter">𝕏</a>
+                        <a href="#" title="Instagram">📷</a>
+                        <a href="#" title="LinkedIn">in</a>
+                    </div>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="listings.html">Properties</a></li>
+                        <li><a href="about.html">About Us</a></li>
+                        <li><a href="contact.html">Contact</a></li>
+                        <li><a href="#">Blog</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                        <li><a href="#">FAQ</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Contact Info</h4>
+                    <p>📍 123 Luxury Avenue, Downtown</p>
+                    <p>📞 (555) 123-4567</p>
+                    <p>✉️ info@nyoderaheights.com</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Nyodera Heights. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
