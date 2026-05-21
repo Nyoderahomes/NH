@@ -19,6 +19,7 @@
                     <li><a href="about.html">About</a></li>
                     <li><a href="contact.html">Contact</a></li>
                     <li><a href="payments.html" class="active">Payments</a></li>
+                    <li><a href="reservations.html">Reservations</a></li>
                     <li><a href="login.html">Login</a></li>
                     <li><a href="signup.html">Sign Up</a></li>
                 </ul>
@@ -78,7 +79,7 @@
                             <input type="text" id="pay-mpesa-phone" placeholder="e.g. +254712345678">
                         </div>
                         <div class="form-group" id="amount-field">
-                            <label for="pay-amount">Amount (USD)</label>
+                            <label for="pay-amount" id="pay-amount-label">Amount (USD)</label>
                             <input type="number" id="pay-amount" min="1" value="100" required>
                         </div>
                         <button type="submit" class="btn-primary">Pay Now</button>
@@ -89,13 +90,15 @@
                         </div>
                     </form>
                     <div id="payment-message" class="form-message"></div>
+                    <div id="payment-details" class="form-message info"></div>
                     <div class="payment-history-panel" style="margin-top:18px">
                         <h3>Payment History</h3>
                         <div id="payments-history">
                             <!-- populated by JS -->
                         </div>
-                        <button id="toggle-payments-visibility" class="btn-secondary" style="margin-top:10px">Hide History</button>
                     </div>
+                    <button id="toggle-payments-visibility" class="btn-secondary" style="margin-top:10px; display:none">Hide History</button>
+                    <div id="payments-history-note" class="form-message info" style="display:none; margin-top:10px">Please sign in to view your payment history.</div>
                 </div>
                 <div class="contact-info-wrapper">
                     <h2>Payment Info</h2>
@@ -116,8 +119,9 @@
     <!-- Stripe.js (loaded before our app script) -->
     <script src="https://js.stripe.com/v3/"></script>
     <script>
-        // Payments server base (include protocol + host + port), e.g. http://localhost:4242
-        window.PAYMENTS_SERVER = 'http://localhost:4242';
+        // Payments server base is resolved automatically by script.js.
+        // Leave this empty unless you need a fixed backend URL.
+        window.PAYMENTS_SERVER = '';
     </script>
     <script src="script.js"></script>
 </body>

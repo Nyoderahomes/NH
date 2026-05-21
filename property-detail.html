@@ -20,6 +20,7 @@
                     <li><a href="about.html">About</a></li>
                     <li><a href="contact.html">Contact</a></li>
                     <li><a href="payments.html">Payments</a></li>
+                    <li><a href="reservations.html">Reservations</a></li>
                     <li><a href="login.html">Login</a></li>
                     <li><a href="signup.html">Sign Up</a></li>
                 </ul>
@@ -114,6 +115,9 @@
                     <!-- Booking Section -->
                     <div class="booking-section">
                         <h2>Reserve This Property</h2>
+                        <div id="booking-payment-notice" class="form-message info" style="display:none;margin-bottom:15px">
+                            Payment required before booking. <a href="payments.html" style="color:#00bfff;text-decoration:underline">Complete payment first</a>
+                        </div>
                         <form class="booking-form" id="booking-form">
                             <div class="form-group">
                                 <label for="check-in">Check-in Date</label>

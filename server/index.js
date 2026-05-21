@@ -5,6 +5,7 @@ const Stripe = require('stripe');
 const paypal = require('@paypal/checkout-server-sdk');
 const axios = require('axios');
 const crypto = require('crypto');
+const nodemailer = require('nodemailer');
 const path = require('path');
 
 const app = express();
@@ -19,10 +20,83 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, '..', 'index.html')
 
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
+// PayPal client helper
+function paypalClient() {
+  const clientId = process.env.PAYPAL_CLIENT_ID;
+  const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
+  if (!clientId || !clientSecret) throw new Error('PayPal credentials not configured');
+  const environment = (process.env.PAYPAL_MODE === 'live')
+    ? new paypal.core.LiveEnvironment(clientId, clientSecret)
+    : new paypal.core.SandboxEnvironment(clientId, clientSecret);
+  return new paypal.core.PayPalHttpClient(environment);
+}
+
 // M-Pesa Safaricom Daraja API Setup
 const DARAJA_AUTH_URL = 'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials';
 const DARAJA_STK_URL = 'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest';
 const DARAJA_CALLBACK_URL = 'https://sandbox.safaricom.co.ke/mpesa/c2b/v1/simulate';
+
+async function getMailTransporter() {
+  const smtpConfigured = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS;
+  if (smtpConfigured) {
+    return {
+      transporter: nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || '587', 10),
+        secure: process.env.SMTP_SECURE === 'true',
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+        tls: {
+          rejectUnauthorized: process.env.SMTP_REJECT_UNAUTHORIZED !== 'false',
+        },
+      }),
+      mode: 'smtp',
+    };
+  }
+
+  console.warn('SMTP credentials not configured. Using Ethereal test account for password reset emails.');
+  const testAccount = await nodemailer.createTestAccount();
+  return {
+    transporter: nodemailer.createTransport({
+      host: testAccount.smtp.host,
+      port: testAccount.smtp.port,
+      secure: testAccount.smtp.secure,
+      auth: {
+        user: testAccount.user,
+        pass: testAccount.pass,
+      },
+    }),
+    mode: 'ethereal',
+  };
+}
+
+async function sendResetEmail({ email, name, tempPassword }) {
+  const { transporter, mode } = await getMailTransporter();
+  const from = process.env.EMAIL_FROM || 'no-reply@nyoderaheights.com';
+  const subject = process.env.EMAIL_SUBJECT || 'Nyodera Heights Password Reset';
+  const text = `Hello ${name || 'Nyodera Heights user'},\n\n` +
+    `Your temporary password is: ${tempPassword}\n\n` +
+    'Use this password to log in and update your password immediately.\n\n' +
+    'If you did not request this reset, please ignore this message.';
+  const html = `<p>Hello ${name || 'Nyodera Heights user'},</p>
+<p>Your temporary password is: <strong>${tempPassword}</strong></p>
+<p>Use this password to log in and update your password immediately.</p>
+<p>If you did not request this reset, please ignore this email.</p>`;
+
+  const info = await transporter.sendMail({
+    from,
+    to: email,
+    subject,
+    text,
+    html,
+  });
+
+  const previewUrl = nodemailer.getTestMessageUrl(info);
+  if (previewUrl) console.log('Password reset email preview URL:', previewUrl);
+  return { previewUrl, mode };
+}
 
 let mpesaAccessToken = null;
 let mpesaTokenExpiry = 0;
@@ -124,6 +198,21 @@ app.get('/config', (req, res) => {
     paypalClientId: process.env.PAYPAL_CLIENT_ID || null,
     mpesaEnabled: true
   });
+});
+
+app.post('/send-reset-email', async (req, res) => {
+  try {
+    const { email, name, tempPassword } = req.body;
+    if (!email || !tempPassword) {
+      return res.status(400).json({ error: 'Missing email or temporary password' });
+    }
+
+    const { previewUrl, mode } = await sendResetEmail({ email, name, tempPassword });
+    res.json({ success: true, previewUrl, mode });
+  } catch (err) {
+    console.error('Password reset email error:', err.response?.data || err.message || err);
+    res.status(500).json({ error: 'Unable to send reset email', details: err.message });
+  }
 });
 
 // M-Pesa Integration Endpoint - Initiates STK Push
@@ -249,3 +338,55 @@ app.post('/mpesa-callback', (req, res) => {
 
 const PORT = process.env.PORT || 4242;
 app.listen(PORT, () => console.log(`Payments server listening on ${PORT}`));
+
+// Refund endpoint - supports Stripe and PayPal (capture refunds)
+app.post('/refund', async (req, res) => {
+  try {
+    const { provider, paymentId, amount, currency, captureId } = req.body;
+    if (!provider || !paymentId) return res.status(400).json({ error: 'Missing provider or paymentId' });
+
+    if (provider.toLowerCase() === 'stripe') {
+      if (!process.env.STRIPE_SECRET_KEY) return res.status(400).json({ error: 'Stripe not configured' });
+
+      // Try retrieving checkout session to obtain payment_intent if needed
+      let paymentIntentId = null;
+      try {
+        const session = await stripe.checkout.sessions.retrieve(paymentId);
+        paymentIntentId = session.payment_intent || null;
+      } catch (e) {
+        // Not a checkout session or retrieval failed; assume paymentId might already be a payment_intent or charge
+        paymentIntentId = paymentId;
+      }
+
+      const refundParams = {};
+      if (paymentIntentId) refundParams.payment_intent = paymentIntentId;
+      if (amount) refundParams.amount = Math.round(Number(amount) * 100);
+
+      const refund = await stripe.refunds.create(refundParams);
+      return res.json({ success: true, refund });
+    }
+
+    if (provider.toLowerCase() === 'paypal') {
+      // For PayPal we need a capture id. Accept captureId in body or attempt to use paymentId as capture id.
+      const cid = captureId || paymentId;
+      if (!cid) return res.status(400).json({ error: 'Missing PayPal capture id' });
+      try {
+        const client = paypalClient();
+        const request = new paypal.payments.CapturesRefundRequest(cid);
+        if (amount) {
+          request.requestBody({ amount: { value: Number(amount).toFixed(2), currency_code: currency || 'USD' } });
+        }
+        const response = await client.execute(request);
+        return res.json({ success: true, refund: response.result });
+      } catch (err) {
+        console.error('PayPal refund error:', err);
+        return res.status(500).json({ error: 'PayPal refund failed', details: err.message || err.toString() });
+      }
+    }
+
+    return res.status(400).json({ error: 'Unsupported provider' });
+  } catch (err) {
+    console.error('Refund endpoint error:', err);
+    res.status(500).json({ error: 'Refund failed', details: err.message });
+  }
+});

@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reservations - Nyodera Heights</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-wrapper">
+                <div class="logo">
+                    <a href="index.html"><img src="https://res.cloudinary.com/dqxlb29uz/image/upload/v1779035728/bwm_uploads/media-1779035727942.jpg" alt="Nyodera Heights logo"></a>
+                </div>
+                <ul class="nav-links">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="listings.html">Listings</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                    <li><a href="payments.html">Payments</a></li>
+                    <li><a href="reservations.html" class="active">Reservations</a></li>
+                    <li><a href="login.html">Login</a></li>
+                    <li><a href="signup.html">Sign Up</a></li>
+                </ul>
+                <div class="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <section class="page-header">
+        <div class="container">
+            <h1>My Reservations</h1>
+            <p>View and manage your confirmed bookings</p>
+        </div>
+    </section>
+
+    <section class="contact-section">
+        <div class="container">
+            <div class="contact-wrapper">
+                <div class="contact-form-wrapper">
+                    <div id="reservations-login-note" class="form-message info" style="display:none">
+                        Please <a href="login.html" style="color:#00bfff;text-decoration:underline">sign in</a> to view your reservations.
+                    </div>
+                    
+                    <div id="reservations-container" style="display:none">
+                        <h2>Confirmed Bookings</h2>
+                        <div id="bookings-list">
+                            <!-- populated by JS -->
+                        </div>
+                        <p id="no-bookings-message" style="color:#999;margin-top:20px">No reservations found.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Extend Stay Modal -->
+    <div id="extend-modal" class="modal" style="display:none">
+        <div class="modal-content">
+            <span class="close" onclick="closeExtendModal()">&times;</span>
+            <h2>Extend Your Stay</h2>
+            <form id="extend-form">
+                <div class="form-group">
+                    <label for="current-checkout">Current Check-out</label>
+                    <input type="text" id="current-checkout" readonly style="background:#f0f0f0;cursor:not-allowed">
+                </div>
+                <div class="form-group">
+                    <label for="new-checkout">New Check-out Date</label>
+                    <input type="date" id="new-checkout" required>
+                </div>
+                <div class="form-group">
+                    <label>Additional Nights: <span id="additional-nights-display">0</span></label>
+                </div>
+                <div class="form-group">
+                    <label>Additional Cost: <span id="additional-cost-display">$0.00</span>/month</label>
+                </div>
+                <button type="submit" class="btn-primary">Confirm Extension</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cancel Booking Confirmation Modal -->
+    <div id="cancel-modal" class="modal" style="display:none">
+        <div class="modal-content">
+            <span class="close" onclick="closeCancelModal()">&times;</span>
+            <h2>Cancel Booking</h2>
+            <p id="cancel-modal-body">Are you sure you want to cancel this booking?</p>
+            <div style="display:flex;gap:10px;margin-top:12px">
+                <button id="confirm-cancel-refund" class="btn-cancel">Confirm & Issue 50% Refund</button>
+                <button id="confirm-cancel-no-refund" class="btn-extend" style="background:#777;color:#fff">Confirm Without Refund</button>
+                <button onclick="closeCancelModal()" class="btn-secondary">Keep Booking</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Styles for modal -->
+    <style>
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+            background-color: #1a1a1a;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #333;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            color: #fff;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #fff;
+        }
+
+        .booking-card {
+            background: #121212;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+
+        .booking-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 15px;
+        }
+
+        .booking-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .booking-status {
+            background: #4CAF50;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        .booking-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .detail-label {
+            color: #999;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        .detail-value {
+            color: #fff;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .booking-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn-extend {
+            flex: 1;
+            padding: 10px 15px;
+            background: #00bfff;
+            color: #000;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .btn-extend:hover {
+            background: #0099cc;
+        }
+
+        .btn-cancel {
+            flex: 1;
+            padding: 10px 15px;
+            background: #ff6b6b;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .btn-cancel:hover {
+            background: #cc5555;
+        }
+
+        .stay-duration {
+            background: #1f1f1f;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            color: #00bfff;
+        }
+
+        @media (max-width: 600px) {
+            .booking-details {
+                grid-template-columns: 1fr;
+            }
+
+            .booking-actions {
+                flex-direction: column;
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 20% auto;
+            }
+        }
+    </style>
+
+    <script src="script.js"></script>
+</body>
+</html>
