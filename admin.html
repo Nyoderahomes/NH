@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Nyodera Heights</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .admin-card {
+            background: #121212;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 18px;
+            color: #fff;
+            font-weight: 600;
+            text-align: center;
+        }
+        .table-container {
+            overflow-x: auto;
+            background: #121212;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 12px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            color: #eee;
+        }
+        table th, table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #333;
+            text-align: left;
+        }
+        table th {
+            color: #a9d6ff;
+            font-weight: 700;
+        }
+        table tr:hover {
+            background: rgba(255,255,255,0.03);
+        }
+        .form-message.error {
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-wrapper">
+                <div class="logo">
+                    <a href="index.html"><img src="https://res.cloudinary.com/dqxlb29uz/image/upload/v1779035728/bwm_uploads/media-1779035727942.jpg" alt="Nyodera Heights logo"></a>
+                </div>
+                <ul class="nav-links">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="listings.html">Listings</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                    <li><a href="payments.html">Payments</a></li>
+                    <li><a href="reservations.html">Reservations</a></li>
+                    <li><a href="login.html">Login</a></li>
+                    <li><a href="signup.html">Sign Up</a></li>
+                </ul>
+                <div class="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <section class="page-header">
+        <div class="container">
+            <h1>Admin Dashboard</h1>
+            <p>Manage users, bookings, and payments for Nyodera Heights.</p>
+        </div>
+    </section>
+
+    <section class="contact-section">
+        <div class="container">
+            <div id="admin-dashboard"></div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <p>&copy; 2026 Nyodera Heights. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

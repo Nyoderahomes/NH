@@ -1,0 +1,38 @@
+[
+  {
+    "name": "Admin User",
+    "email": "admin@nh.test",
+    "password": "Admin123!",
+    "role": "admin"
+  },
+  {
+    "name": "Test User",
+    "email": "test2@example.com",
+    "password": "Hollyshit",
+    "role": "user"
+  },
+  {
+    "name": "Barack Obama",
+    "email": "jumabarack17@gmail.com",
+    "password": "Barack9852.",
+    "role": "user"
+  },
+  {
+    "name": "Comp Wiz",
+    "email": "compwiz444@gmail.com",
+    "password": "Comp9852",
+    "role": "user"
+  },
+  {
+    "name": "Kennedy Juma",
+    "email": "1jumakennedy@gmail.com",
+    "password": "Hollyshit",
+    "role": "user"
+  },
+  {
+    "name": "Grave filler",
+    "email": "gravefiller0@gmail.com",
+    "password": "Banger324",
+    "role": "user"
+  }
+]

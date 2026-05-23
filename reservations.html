@@ -65,6 +65,8 @@
             <span class="close" onclick="closeExtendModal()">&times;</span>
             <h2>Extend Your Stay</h2>
             <form id="extend-form">
+                <input type="hidden" id="extend-booking-id">
+                <input type="hidden" id="extend-current-checkout">
                 <div class="form-group">
                     <label for="current-checkout">Current Check-out</label>
                     <input type="text" id="current-checkout" readonly style="background:#f0f0f0;cursor:not-allowed">
@@ -91,9 +93,9 @@
             <h2>Cancel Booking</h2>
             <p id="cancel-modal-body">Are you sure you want to cancel this booking?</p>
             <div style="display:flex;gap:10px;margin-top:12px">
-                <button id="confirm-cancel-refund" class="btn-cancel">Confirm & Issue 50% Refund</button>
-                <button id="confirm-cancel-no-refund" class="btn-extend" style="background:#777;color:#fff">Confirm Without Refund</button>
-                <button onclick="closeCancelModal()" class="btn-secondary">Keep Booking</button>
+                <button id="confirm-cancel-refund" type="button" class="btn-cancel">Confirm & Issue 50% Refund</button>
+                <button id="confirm-cancel-no-refund" type="button" class="btn-extend" style="background:#777;color:#fff">Confirm Without Refund</button>
+                <button type="button" onclick="closeCancelModal()" class="btn-secondary">Keep Booking</button>
             </div>
         </div>
     </div>

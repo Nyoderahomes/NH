@@ -393,6 +393,41 @@ section h2 {
 .about-features li {
     padding: 8px 0;
     font-size: 1.05rem;
+
+/* Admin property message styles */
+.form-message {
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    display: inline-block;
+}
+.form-message.info {
+    background: rgba(255,255,255,0.06);
+    color: #ffffff;
+}
+.form-message.success {
+    background: rgba(39,174,96,0.12);
+    color: var(--success-color);
+    border: 1px solid rgba(39,174,96,0.12);
+}
+.form-message.error {
+    background: rgba(255,99,71,0.08);
+    color: #ff6b6b;
+    border: 1px solid rgba(255,99,71,0.08);
+}
+
+.prop-status {
+    display: inline-block;
+    min-width: 90px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    text-align: center;
+}
+.prop-status.success { color: var(--success-color); }
+.prop-status.error { color: #ff6b6b; }
+.prop-status.info { color: rgba(255,255,255,0.85); }
     color: white;
     font-weight: 500;
 }

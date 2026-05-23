@@ -6,11 +6,91 @@ const paypal = require('@paypal/checkout-server-sdk');
 const axios = require('axios');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
+const fs = require('fs');
 const path = require('path');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+const USERS_FILE = path.join(__dirname, 'users.json');
+const BOOKINGS_FILE = path.join(__dirname, 'bookings.json');
+const PROPERTIES_FILE = path.join(__dirname, 'properties.json');
+
+function readUsersFromFile() {
+  try {
+    const data = fs.readFileSync(USERS_FILE, 'utf8');
+    return data ? JSON.parse(data) : [];
+  } catch (err) {
+    if (err.code === 'ENOENT') return [];
+    console.error('Unable to read users file:', err);
+    return [];
+  }
+}
+
+function saveUsersToFile(users) {
+  try {
+    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), 'utf8');
+  } catch (err) {
+    console.error('Unable to save users file:', err);
+    throw err;
+  }
+}
+
+function readBookingsFromFile() {
+  try {
+    const data = fs.readFileSync(BOOKINGS_FILE, 'utf8');
+    return data ? JSON.parse(data) : [];
+  } catch (err) {
+    if (err.code === 'ENOENT') return [];
+    console.error('Unable to read bookings file:', err);
+    return [];
+  }
+}
+
+function readPropertiesFromFile() {
+  try {
+    const data = fs.readFileSync(PROPERTIES_FILE, 'utf8');
+    return data ? JSON.parse(data) : [];
+  } catch (err) {
+    if (err.code === 'ENOENT') return [];
+    console.error('Unable to read properties file:', err);
+    return [];
+  }
+}
+
+function savePropertiesToFile(properties) {
+  try {
+    fs.writeFileSync(PROPERTIES_FILE, JSON.stringify(properties, null, 2), 'utf8');
+  } catch (err) {
+    console.error('Unable to save properties file:', err);
+    throw err;
+  }
+}
+
+function saveBookingsToFile(bookings) {
+  try {
+    fs.writeFileSync(BOOKINGS_FILE, JSON.stringify(bookings, null, 2), 'utf8');
+  } catch (err) {
+    console.error('Unable to save bookings file:', err);
+    throw err;
+  }
+}
+
+function ensureDefaultAdminUser() {
+  const users = readUsersFromFile();
+  if (!users.find(u => u.email === 'admin@nh.test')) {
+    users.push({
+      name: 'Admin User',
+      email: 'admin@nh.test',
+      password: 'Admin123!',
+      role: 'admin'
+    });
+    saveUsersToFile(users);
+  }
+}
+
+ensureDefaultAdminUser();
 
 // Serve frontend static files from the project root so GET / serves index.html
 app.use(express.static(path.join(__dirname, '..')));
@@ -95,6 +175,19 @@ async function sendResetEmail({ email, name, tempPassword }) {
 
   const previewUrl = nodemailer.getTestMessageUrl(info);
   if (previewUrl) console.log('Password reset email preview URL:', previewUrl);
+  return { previewUrl, mode };
+}
+
+async function sendOtpEmail({ email, name, otp }) {
+  const { transporter, mode } = await getMailTransporter();
+  const from = process.env.EMAIL_FROM || 'no-reply@nyoderaheights.com';
+  const subject = process.env.EMAIL_SUBJECT_OTP || 'Nyodera Heights Email Verification';
+  const text = `Hello ${name || ''},\n\nYour verification code is: ${otp}\n\nEnter this code in the Nyodera Heights sign-up page to verify your email. The code expires in 10 minutes.`;
+  const html = `<p>Hello ${name || ''},</p><p>Your verification code is: <strong>${otp}</strong></p><p>The code expires in 10 minutes.</p>`;
+
+  const info = await transporter.sendMail({ from, to: email, subject, text, html });
+  const previewUrl = nodemailer.getTestMessageUrl(info);
+  if (previewUrl) console.log('OTP email preview URL:', previewUrl);
   return { previewUrl, mode };
 }
 
@@ -200,14 +293,349 @@ app.get('/config', (req, res) => {
   });
 });
 
+app.get('/api/users', (req, res) => {
+  const users = readUsersFromFile().map(({ name, email, role }) => ({ name, email, role }));
+  res.json(users);
+});
+
+// Properties endpoints
+app.get('/api/properties', (req, res) => {
+  try {
+    const properties = readPropertiesFromFile();
+    res.json(properties || []);
+  } catch (err) {
+    console.error('GET /api/properties error', err);
+    res.status(500).json({ error: 'Unable to load properties' });
+  }
+});
+
+app.patch('/api/properties/:id', (req, res) => {
+  try {
+    const id = req.params.id;
+    const { rate_per_month } = req.body;
+    if (rate_per_month == null) return res.status(400).json({ error: 'Missing rate_per_month' });
+
+    const properties = readPropertiesFromFile();
+    const idx = properties.findIndex(p => String(p.id) === String(id));
+    if (idx === -1) return res.status(404).json({ error: 'Property not found' });
+
+    properties[idx].rate_per_month = Number(rate_per_month);
+    savePropertiesToFile(properties);
+    res.json({ success: true, property: properties[idx] });
+  } catch (err) {
+    console.error('PATCH /api/properties/:id error', err);
+    res.status(500).json({ error: 'Unable to update property' });
+  }
+});
+
+// Bookings endpoints
+app.get('/api/bookings', (req, res) => {
+  const bookings = readBookingsFromFile();
+  res.json(bookings || []);
+});
+
+app.post('/api/bookings', (req, res) => {
+  try {
+    const booking = req.body;
+    if (!booking || !booking.id || !booking.userEmail) {
+      return res.status(400).json({ error: 'Missing booking data' });
+    }
+
+    const bookings = readBookingsFromFile();
+    const existing = bookings.find(b => String(b.id) === String(booking.id));
+    if (existing) {
+      Object.assign(existing, booking);
+    } else {
+      bookings.push(booking);
+    }
+
+    saveBookingsToFile(bookings);
+    res.json({ success: true, booking });
+  } catch (err) {
+    console.error('create booking error', err);
+    res.status(500).json({ error: 'Unable to save booking' });
+  }
+});
+
+// Request cancellation (creates a pending cancellation)
+app.post('/api/bookings/cancel-request', (req, res) => {
+  try {
+    const { bookingId, refundRequested, requestedBy } = req.body || {};
+    if (!bookingId) return res.status(400).json({ error: 'Missing bookingId' });
+
+    const bookings = readBookingsFromFile();
+    const booking = bookings.find(b => String(b.id) === String(bookingId));
+    if (!booking) return res.status(404).json({ error: 'Booking not found' });
+
+    booking.status = 'cancellation_pending';
+    booking.cancellation = booking.cancellation || {};
+    booking.cancellation.requestedAt = new Date().toISOString();
+    booking.cancellation.requestedBy = requestedBy || 'unknown';
+    booking.cancellation.refundRequested = Boolean(refundRequested);
+    if (booking.cancellation.refundRequested && booking.paymentId && booking.paymentAmount) {
+      booking.cancellation.refundAmount = Number((booking.paymentAmount * 0.5).toFixed(2));
+    }
+
+    saveBookingsToFile(bookings);
+    res.json({ success: true, booking });
+  } catch (err) {
+    console.error('cancel-request error', err);
+    res.status(500).json({ error: 'Unable to request cancellation' });
+  }
+});
+
+// Approve cancellation and (optionally) issue refund
+app.post('/api/bookings/:id/approve-cancellation', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const bookings = readBookingsFromFile();
+    const booking = bookings.find(b => String(b.id) === String(id));
+    if (!booking) return res.status(404).json({ error: 'Booking not found' });
+    if (!booking.cancellation || booking.status !== 'cancellation_pending') return res.status(400).json({ error: 'No pending cancellation' });
+
+    // perform refund if requested and payment info exists
+    let refundResult = null;
+    if (booking.cancellation.refundRequested && booking.paymentId && booking.paymentAmount) {
+      try {
+        const refundAmount = booking.cancellation.refundAmount || Number((booking.paymentAmount * 0.5).toFixed(2));
+        const refundResp = await axios.post(`${req.protocol}://${req.get('host')}/refund`, {
+          provider: booking.paymentProvider || 'stripe',
+          paymentId: booking.paymentId,
+          amount: refundAmount,
+          currency: booking.paymentCurrency || 'USD',
+          captureId: booking.paymentCaptureId || undefined
+        });
+        refundResult = refundResp.data;
+        booking.refund = { amount: refundAmount, date: new Date().toISOString(), id: refundResult.refund?.id || `REF_${Date.now()}` };
+      } catch (refundErr) {
+        console.error('refund during approve-cancellation failed', refundErr.response?.data || refundErr.message || refundErr);
+        // continue and record local refund info
+        booking.refund = { amount: booking.cancellation.refundAmount || null, date: new Date().toISOString(), id: `REF_${Date.now()}`, fallback: true };
+      }
+    }
+
+    booking.cancellation.status = 'approved';
+    booking.status = 'cancelled';
+    saveBookingsToFile(bookings);
+
+    // send notification email if email exists
+    if (booking.userEmail) {
+      try {
+        const { transporter } = await getMailTransporter();
+        const info = await transporter.sendMail({
+          from: process.env.EMAIL_FROM || 'no-reply@nyoderaheights.com',
+          to: booking.userEmail,
+          subject: 'Your cancellation request was approved',
+          text: `Hello ${booking.userName || ''},\n\nYour cancellation for booking ${booking.id} was approved. A refund of ${booking.refund?.amount || 'N/A'} will be processed shortly.\n\nRegards, Nyodera Heights`,
+        });
+        if (nodemailer.getTestMessageUrl(info)) console.log('Cancellation approval email preview:', nodemailer.getTestMessageUrl(info));
+      } catch (emailErr) {
+        console.error('Failed to send approval email', emailErr);
+      }
+    }
+
+    res.json({ success: true, booking, refundResult });
+  } catch (err) {
+    console.error('approve-cancellation error', err);
+    res.status(500).json({ error: 'Unable to approve cancellation' });
+  }
+});
+
+// Deny cancellation
+app.post('/api/bookings/:id/deny-cancellation', (req, res) => {
+  try {
+    const id = req.params.id;
+    const bookings = readBookingsFromFile();
+    const booking = bookings.find(b => String(b.id) === String(id));
+    if (!booking) return res.status(404).json({ error: 'Booking not found' });
+    if (!booking.cancellation || booking.status !== 'cancellation_pending') return res.status(400).json({ error: 'No pending cancellation' });
+
+    booking.cancellation.status = 'denied';
+    booking.status = 'confirmed';
+    saveBookingsToFile(bookings);
+
+    if (booking.userEmail) {
+      (async () => {
+        try {
+          const { transporter } = await getMailTransporter();
+          const info = await transporter.sendMail({
+            from: process.env.EMAIL_FROM || 'no-reply@nyoderaheights.com',
+            to: booking.userEmail,
+            subject: 'Your cancellation request was denied',
+            text: `Hello ${booking.userName || ''},\n\nYour cancellation request for booking ${booking.id} was denied by admin. Your booking remains confirmed.\n\nRegards, Nyodera Heights`,
+          });
+          if (nodemailer.getTestMessageUrl(info)) console.log('Cancellation denial email preview:', nodemailer.getTestMessageUrl(info));
+        } catch (emailErr) {
+          console.error('Failed to send denial email', emailErr);
+        }
+      })();
+    }
+
+    res.json({ success: true, booking });
+  } catch (err) {
+    console.error('deny-cancellation error', err);
+    res.status(500).json({ error: 'Unable to deny cancellation' });
+  }
+});
+
+app.post('/api/auth/signup', (req, res) => {
+  const { name, email, password } = req.body;
+  if (!name || !email || !password) {
+    return res.status(400).json({ error: 'Missing name, email, or password' });
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const users = readUsersFromFile();
+  if (users.find(u => u.email === normalizedEmail)) {
+    return res.status(409).json({ error: 'Email already registered' });
+  }
+
+  // create user with verification required (store OTP)
+  const otp = ('' + Math.floor(100000 + Math.random() * 900000));
+  const otpExpires = Date.now() + (10 * 60 * 1000); // 10 minutes
+  const lastOtpSentAt = Date.now();
+  const user = { name: name.trim(), email: normalizedEmail, password, role: 'user', verified: false, otp, otpExpires, lastOtpSentAt };
+  users.push(user);
+  saveUsersToFile(users);
+
+  // attempt to send OTP email (best-effort)
+  (async () => {
+    try {
+      await sendOtpEmail({ email: user.email, name: user.name, otp });
+    } catch (err) {
+      console.error('Failed to send signup OTP email', err);
+    }
+  })();
+
+  res.json({ email: user.email, name: user.name, role: user.role, needsVerification: true });
+});
+
+// Verify OTP
+app.post('/api/auth/verify-otp', (req, res) => {
+  try {
+    const { email, otp } = req.body || {};
+    if (!email || !otp) return res.status(400).json({ error: 'Missing email or otp' });
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const users = readUsersFromFile();
+    const user = users.find(u => u.email === normalizedEmail);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.verified) return res.json({ success: true, message: 'Already verified' });
+    if (!user.otp || !user.otpExpires) return res.status(400).json({ error: 'No verification code found' });
+    if (Date.now() > Number(user.otpExpires)) return res.status(400).json({ error: 'OTP expired' });
+    if (String(user.otp) !== String(otp).trim()) return res.status(400).json({ error: 'Invalid OTP' });
+
+    user.verified = true;
+    delete user.otp;
+    delete user.otpExpires;
+    saveUsersToFile(users);
+
+    res.json({ success: true, email: user.email, name: user.name, role: user.role });
+  } catch (err) {
+    console.error('verify-otp error', err);
+    res.status(500).json({ error: 'Unable to verify OTP' });
+  }
+});
+
+// Resend OTP
+app.post('/api/auth/resend-otp', (req, res) => {
+  try {
+    const { email } = req.body || {};
+    if (!email) return res.status(400).json({ error: 'Missing email' });
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const users = readUsersFromFile();
+    const user = users.find(u => u.email === normalizedEmail);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.verified) return res.status(400).json({ error: 'User already verified' });
+    // enforce cooldown (60s)
+    const now = Date.now();
+    const cooldown = 60 * 1000;
+    if (user.lastOtpSentAt && (now - Number(user.lastOtpSentAt) < cooldown)) {
+      const wait = Math.ceil((cooldown - (now - Number(user.lastOtpSentAt))) / 1000);
+      return res.status(429).json({ error: 'Too many requests', waitSeconds: wait });
+    }
+
+    const otp = ('' + Math.floor(100000 + Math.random() * 900000));
+    user.otp = otp;
+    user.otpExpires = now + (10 * 60 * 1000);
+    user.lastOtpSentAt = now;
+    saveUsersToFile(users);
+
+    (async () => {
+      try {
+        await sendOtpEmail({ email: user.email, name: user.name, otp });
+      } catch (err) {
+        console.error('Failed to send resend OTP email', err);
+      }
+    })();
+
+    res.json({ success: true, message: 'OTP resent' });
+  } catch (err) {
+    console.error('resend-otp error', err);
+    res.status(500).json({ error: 'Unable to resend OTP' });
+  }
+});
+
+app.post('/api/auth/login', (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Missing email or password' });
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const users = readUsersFromFile();
+  const user = users.find(u => u.email === normalizedEmail && u.password === password);
+  if (!user) {
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+
+  // Prevent login for users who were created but not yet verified (explicit false)
+  if (user.verified === false) {
+    return res.status(401).json({ error: 'Email not verified', needsVerification: true });
+  }
+
+  res.json({ email: user.email, name: user.name, role: user.role });
+});
+
+app.patch('/api/auth/password', (req, res) => {
+  const { email, currentPassword, newPassword } = req.body;
+  if (!email || !currentPassword || !newPassword) {
+    return res.status(400).json({ error: 'Missing email, current password, or new password' });
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const users = readUsersFromFile();
+  const user = users.find(u => u.email === normalizedEmail);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  if (user.password !== currentPassword) {
+    return res.status(401).json({ error: 'Current password is incorrect' });
+  }
+
+  user.password = newPassword;
+  saveUsersToFile(users);
+  res.json({ success: true, message: 'Password updated' });
+});
+
 app.post('/send-reset-email', async (req, res) => {
   try {
-    const { email, name, tempPassword } = req.body;
+    const { email, tempPassword } = req.body;
     if (!email || !tempPassword) {
       return res.status(400).json({ error: 'Missing email or temporary password' });
     }
 
-    const { previewUrl, mode } = await sendResetEmail({ email, name, tempPassword });
+    const normalizedEmail = email.trim().toLowerCase();
+    const users = readUsersFromFile();
+    const user = users.find(u => u.email === normalizedEmail);
+    if (!user) {
+      return res.status(404).json({ error: 'No user found for that email' });
+    }
+
+    user.password = tempPassword;
+    saveUsersToFile(users);
+
+    const { previewUrl, mode } = await sendResetEmail({ email: user.email, name: user.name, tempPassword });
     res.json({ success: true, previewUrl, mode });
   } catch (err) {
     console.error('Password reset email error:', err.response?.data || err.message || err);

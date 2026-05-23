@@ -1,0 +1,12 @@
+[
+  {
+    "id": "prop_1",
+    "title": "Luxury Studio Apartment",
+    "rate_per_month": 2500
+  },
+  {
+    "id": "prop_2",
+    "title": "One Bedroom Apartment",
+    "rate_per_month": 1800
+  }
+]

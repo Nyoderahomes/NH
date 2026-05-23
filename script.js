@@ -106,6 +106,7 @@ function setupContactForm() {
 // ============================================
 
 function setupBookingForm() {
+    const bookingForm = document.getElementById('booking-form');
     if (bookingForm) {
         // Check payment status and show notice if needed
         const session = getSession();
@@ -142,7 +143,9 @@ function setupBookingForm() {
                     const checkInDateObj = checkInDate;
                     const checkOutDateObj = checkOutDate;
                     const nights = Math.ceil((checkOutDateObj - checkInDateObj) / (1000 * 60 * 60 * 24));
-                    const totalPrice = Number(((nights / 30) * PRICE_PER_MONTH).toFixed(2));
+                    const propertyTitle = document.getElementById('property-title')?.textContent || '';
+                    const ratePerMonth = getRateForProperty(propertyTitle) || PRICE_PER_MONTH;
+                    const totalPrice = Number(((nights / 30) * ratePerMonth).toFixed(2));
 
                     // Create a pending booking awaiting payment
                     const pending = {
@@ -176,25 +179,47 @@ function setupBookingForm() {
 // ============================================
 // RESERVATIONS MANAGEMENT
 // ============================================
+function getPendingExtension() {
+    return JSON.parse(localStorage.getItem('nh_pending_extension') || 'null');
+}
+
 function setupReservationsPage() {
     const session = getSession();
 
-    // If we were redirected here from a booking, prefill the amount and lock it
+    // If we were redirected here from a booking or a stay extension, prefill the amount and lock it
     const urlParams = new URLSearchParams(window.location.search);
     const bookingIdParam = urlParams.get('booking_id');
-    const pendingBooking = JSON.parse(localStorage.getItem('nh_pending_booking') || 'null');
-    if (pendingBooking && (!bookingIdParam || pendingBooking.id === bookingIdParam)) {
+    const pendingExtension = getPendingExtension();
+    if (pendingExtension && (!bookingIdParam || pendingExtension.bookingId === bookingIdParam)) {
         const amountInput = document.getElementById('pay-amount');
         if (amountInput) {
-            amountInput.value = pendingBooking.amount;
+            amountInput.value = pendingExtension.amount;
             amountInput.readOnly = true;
         }
         const amountLabel = document.getElementById('pay-amount-label');
-        if (amountLabel) amountLabel.textContent = 'Amount (USD) - Reservation total';
+        if (amountLabel) amountLabel.textContent = 'Amount (USD) - Extension fee';
+    } else {
+        const pendingBooking = JSON.parse(localStorage.getItem('nh_pending_booking') || 'null');
+        if (pendingBooking && (!bookingIdParam || pendingBooking.id === bookingIdParam)) {
+            const amountInput = document.getElementById('pay-amount');
+            if (amountInput) {
+                amountInput.value = pendingBooking.amount;
+                amountInput.readOnly = true;
+            }
+            const amountLabel = document.getElementById('pay-amount-label');
+            if (amountLabel) amountLabel.textContent = 'Amount (USD) - Reservation total';
+        }
     }
     const container = document.getElementById('reservations-container');
     const loginNote = document.getElementById('reservations-login-note');
     const bookingsList = document.getElementById('bookings-list');
+    const extendForm = document.getElementById('extend-form');
+
+    if (extendForm && !extendForm.dataset.extendHandlerBound) {
+        extendForm.addEventListener('submit', handleExtendStay);
+        extendForm.dataset.extendHandlerBound = 'true';
+        console.log('[Extension] bound submit handler on reservations setup');
+    }
     
     if (!container) return;
     
@@ -207,7 +232,24 @@ function setupReservationsPage() {
     loginNote.style.display = 'none';
     container.style.display = 'block';
     
-    renderBookings();
+    // Sync bookings from server to local cache for current user
+    (async () => {
+        try {
+            const serverBookings = await fetchBookings();
+            if (Array.isArray(serverBookings)) {
+                const localBookings = JSON.parse(localStorage.getItem('nh_bookings') || '[]');
+                // Avoid wiping local cache when the server returns an empty list unexpectedly
+                if (serverBookings.length || !localBookings.length) {
+                    localStorage.setItem('nh_bookings', JSON.stringify(serverBookings));
+                } else {
+                    console.log('Reservations sync: keeping local bookings because server returned no bookings and local cache exists.');
+                }
+            }
+        } catch (err) {
+            console.warn('Unable to sync server bookings for reservations page', err);
+        }
+        renderBookings();
+    })();
 }
 
 function renderBookings() {
@@ -218,7 +260,8 @@ function renderBookings() {
     if (!bookingsList) return;
     
     const allBookings = JSON.parse(localStorage.getItem('nh_bookings') || '[]');
-    const userBookings = allBookings.filter(b => b.userEmail === session?.email && b.status === 'confirmed');
+    // Show confirmed bookings and any pending cancellations for the current user
+    const userBookings = allBookings.filter(b => b.userEmail === session?.email && (b.status === 'confirmed' || b.status === 'cancellation_pending'));
     
     if (!userBookings.length) {
         bookingsList.innerHTML = '';
@@ -239,7 +282,7 @@ function renderBookings() {
             <div class="booking-card">
                 <div class="booking-header">
                     <div class="booking-title">${booking.property}</div>
-                    <div class="booking-status">CONFIRMED</div>
+                        <div class="booking-status">${booking.status === 'cancellation_pending' ? 'CANCELLATION PENDING' : 'CONFIRMED'}</div>
                 </div>
                 <div class="booking-details">
                     <div class="detail-item">
@@ -263,8 +306,8 @@ function renderBookings() {
                     <strong>${nights} Night${nights !== 1 ? 's' : ''}</strong> • ${nights > 30 ? 'Long term stay' : 'Short term stay'}
                 </div>
                 <div class="booking-actions">
-                    <button class="btn-extend" onclick="openExtendModal('${booking.id}', '${booking.checkOut}')">Extend Stay</button>
-                    <button class="btn-cancel" onclick="showCancelConfirmation('${booking.id}')">Cancel Booking</button>
+                    <button class="btn-extend" onclick="openExtendModal('${booking.id}', '${booking.checkOut}')" ${booking.status === 'cancellation_pending' ? 'disabled' : ''}>Extend Stay</button>
+                    <button class="btn-cancel" onclick="showCancelConfirmation('${booking.id}')" ${booking.status === 'cancellation_pending' ? 'disabled' : ''}>Cancel Booking</button>
                 </div>
             </div>
         `;
@@ -274,20 +317,59 @@ function renderBookings() {
 }
 
 function openExtendModal(bookingId, currentCheckOut) {
+    console.log('[Extension] openExtendModal', bookingId, currentCheckOut);
     const modal = document.getElementById('extend-modal');
+    const bookingIdField = document.getElementById('extend-booking-id');
+    const currentCheckoutStored = document.getElementById('extend-current-checkout');
     const currentCheckoutField = document.getElementById('current-checkout');
     const newCheckoutField = document.getElementById('new-checkout');
     const form = document.getElementById('extend-form');
     
+    const currentCheckoutDate = new Date(currentCheckOut);
+    const nextDay = new Date(currentCheckoutDate.getTime() + 24 * 60 * 60 * 1000);
+    const minDate = nextDay.toISOString().split('T')[0];
+
+    if (bookingIdField) bookingIdField.value = bookingId;
+    if (currentCheckoutStored) currentCheckoutStored.value = currentCheckOut;
     if (currentCheckoutField) {
-        currentCheckoutField.value = new Date(currentCheckOut).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
+        currentCheckoutField.value = currentCheckoutDate.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    }
+
+    if (newCheckoutField) {
+        newCheckoutField.value = minDate;
+        newCheckoutField.min = minDate;
+        newCheckoutField.oninput = () => updateExtensionPreview(currentCheckoutDate);
+    }
+
+    updateExtensionPreview(currentCheckoutDate);
+
+    if (form) {
+        if (!form.dataset.extendHandlerBound) {
+            form.addEventListener('submit', handleExtendStay);
+            form.dataset.extendHandlerBound = 'true';
+        }
     }
     
-    newCheckoutField.value = '';
-    newCheckoutField.min = currentCheckOut;
-    form.onsubmit = (e) => handleExtendStay(e, bookingId, currentCheckOut);
-    
-    modal.style.display = 'block';
+    if (modal) modal.style.display = 'block';
+}
+
+function updateExtensionPreview(currentCheckoutDate) {
+    const newCheckoutField = document.getElementById('new-checkout');
+    const additionalNightsDisplay = document.getElementById('additional-nights-display');
+    const additionalCostDisplay = document.getElementById('additional-cost-display');
+    if (!newCheckoutField || !additionalNightsDisplay || !additionalCostDisplay) return;
+
+    const newCheckoutDate = new Date(newCheckoutField.value);
+    if (isNaN(newCheckoutDate) || newCheckoutDate <= currentCheckoutDate) {
+        additionalNightsDisplay.textContent = '0';
+        additionalCostDisplay.textContent = '$0.00';
+        return;
+    }
+
+    const additionalNights = Math.ceil((newCheckoutDate - currentCheckoutDate) / (1000 * 60 * 60 * 24));
+    const additionalCost = Number(((additionalNights / 30) * PRICE_PER_MONTH).toFixed(2));
+    additionalNightsDisplay.textContent = String(additionalNights);
+    additionalCostDisplay.textContent = formatCurrency(additionalCost, 'USD');
 }
 
 function closeExtendModal() {
@@ -295,122 +377,150 @@ function closeExtendModal() {
     modal.style.display = 'none';
 }
 
-function handleExtendStay(e, bookingId, currentCheckOut) {
+function handleExtendStay(e) {
+    console.log('[Extension] handleExtendStay fired');
     e.preventDefault();
-    
+
+    const bookingIdField = document.getElementById('extend-booking-id');
+    const currentCheckoutStored = document.getElementById('extend-current-checkout');
     const newCheckoutField = document.getElementById('new-checkout');
+    const bookingId = bookingIdField?.value;
+    const currentCheckOut = currentCheckoutStored?.value;
+
+    if (!bookingId || !currentCheckOut || !newCheckoutField) {
+        alert('Unable to process extension. Please try again.');
+        return;
+    }
+
     const newCheckout = newCheckoutField.value;
+    console.log('[Extension] handleExtendStay data', { bookingId, currentCheckOut, newCheckout });
     const currentCheckoutDate = new Date(currentCheckOut);
     const newCheckoutDate = new Date(newCheckout);
-    
+
+    if (isNaN(currentCheckoutDate.getTime()) || isNaN(newCheckoutDate.getTime())) {
+        alert('Invalid check-out dates. Please choose a valid new check-out date.');
+        return;
+    }
+
     if (newCheckoutDate <= currentCheckoutDate) {
         alert('New check-out date must be after the current check-out date.');
         return;
     }
-    
+
+    const additionalNights = Math.ceil((newCheckoutDate - currentCheckoutDate) / (1000 * 60 * 60 * 24));
+    const additionalAmount = Number(((additionalNights / 30) * PRICE_PER_MONTH).toFixed(2));
+    const session = getSession();
     const allBookings = JSON.parse(localStorage.getItem('nh_bookings') || '[]');
     const booking = allBookings.find(b => b.id == bookingId);
-    
-    if (booking) {
-        const additionalNights = Math.ceil((newCheckoutDate - currentCheckoutDate) / (1000 * 60 * 60 * 24));
-        booking.checkOut = newCheckout;
-        localStorage.setItem('nh_bookings', JSON.stringify(allBookings));
-        
-        alert(`Stay extended successfully!\nNew check-out date: ${newCheckoutDate.toLocaleDateString()}\nAdditional nights: ${additionalNights}\nAdditional cost: $${(additionalNights / 30 * 2500).toFixed(2)}`);
-        closeExtendModal();
-        renderBookings();
-    }
+
+    const pendingExtension = {
+        id: `EXT_${Date.now()}`,
+        bookingId,
+        userEmail: session?.email || null,
+        property: booking?.property || 'Reserved Property',
+        oldCheckOut: currentCheckOut,
+        newCheckOut,
+        additionalNights,
+        amount: additionalAmount,
+        createdDate: new Date().toISOString(),
+        status: 'pending_extension_payment'
+    };
+
+    localStorage.setItem('nh_pending_extension', JSON.stringify(pendingExtension));
+
+    const params = new URLSearchParams({ extension_id: pendingExtension.id, booking_id: bookingId, amount: String(additionalAmount) });
+    const targetUrl = `payments.html?${params.toString()}`;
+    console.log('[Extension] redirecting to:', targetUrl);
+    window.location.href = targetUrl;
 }
 
-function cancelBooking(bookingId) {
-    if (!confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) {
-        return;
+function showCancelConfirmation(bookingId) {
+    const modal = document.getElementById('cancel-modal');
+    if (!modal) return;
+
+    const confirmRefund = document.getElementById('confirm-cancel-refund');
+    const confirmNoRefund = document.getElementById('confirm-cancel-no-refund');
+
+    if (confirmRefund) {
+        confirmRefund.onclick = () => {
+            cancelBooking(bookingId, true);
+        };
     }
-    
-    const allBookings = JSON.parse(localStorage.getItem('nh_bookings') || '[]');
-    const booking = allBookings.find(b => b.id == bookingId);
-    
-    if (booking) {
-        booking.status = 'cancelled';
 
-        // Attempt server-side refund for 50% of paid amount
-        (async () => {
-            try {
-                const payments = JSON.parse(localStorage.getItem('nh_payments') || '[]');
-                const payment = payments.find(p => p.id === booking.paymentId || p.id === String(booking.paymentId));
-                if (!payment || !payment.amount) {
-                    alert('Booking cancelled successfully. No payment was found to refund.');
-                    localStorage.setItem('nh_bookings', JSON.stringify(allBookings));
-                    renderBookings();
-                    return;
+    if (confirmNoRefund) {
+        confirmNoRefund.onclick = () => {
+            cancelBooking(bookingId, false);
+        };
+    }
+
+    modal.style.display = 'block';
+}
+
+function closeCancelModal() {
+    const modal = document.getElementById('cancel-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+function cancelBooking(bookingId, issueRefund = true) {
+    closeCancelModal();
+    // Send cancellation request to server
+    (async () => {
+        try {
+            const base = await getPaymentsServer();
+            const url = (base ? base : '') + '/api/bookings/cancel-request';
+            const payload = { bookingId, refundRequested: Boolean(issueRefund), requestedBy: getSession()?.email };
+
+            let resp = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            let data = await resp.json().catch(() => null);
+
+            if (!resp.ok && data?.error === 'Booking not found') {
+                const allBookings = JSON.parse(localStorage.getItem('nh_bookings') || '[]');
+                const booking = allBookings.find(b => String(b.id) === String(bookingId));
+                if (booking) {
+                    try {
+                        await createBooking(booking);
+                        resp = await fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        data = await resp.json().catch(() => null);
+                    } catch (syncErr) {
+                        console.warn('Unable to sync booking to server before cancellation:', syncErr);
+                    }
                 }
-
-                const refundAmount = Number((payment.amount * 0.5).toFixed(2));
-                const base = await getPaymentsServer();
-                const resp = await fetch((base ? base : '') + '/refund', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ provider: payment.provider || 'stripe', paymentId: payment.id, amount: refundAmount, currency: payment.currency || 'USD', captureId: payment.captureId })
-                });
-
-                const data = await resp.json().catch(() => null);
-                if (!resp.ok || !data?.success) {
-                    console.warn('Server refund failed, falling back to client-side refund', data);
-                    // Fallback: record refund locally
-                    const refundRecord = {
-                        id: `REF_${Date.now()}`,
-                        provider: 'Refund',
-                        amount: refundAmount,
-                        currency: payment.currency || 'USD',
-                        date: new Date().toISOString(),
-                        status: 'REFUNDED',
-                        description: `50% refund for booking ${booking.id}`,
-                        userEmail: booking.userEmail,
-                        relatedPaymentId: payment.id
-                    };
-                    payments.push(refundRecord);
-                    localStorage.setItem('nh_payments', JSON.stringify(payments));
-                    booking.refund = { amount: refundAmount, date: refundRecord.date };
-                    alert(`Booking cancelled. A 50% refund of ${formatCurrency(refundAmount, refundRecord.currency)} has been recorded (local fallback).`);
-                } else {
-                    // Use server-provided refund id/details
-                    const refundInfo = data.refund || {};
-                    const refundId = refundInfo.id || `REF_${Date.now()}`;
-                    const refundRecord = {
-                        id: refundId,
-                        provider: payment.provider === 'PayPal' ? 'PayPal Refund' : 'Stripe Refund',
-                        amount: refundAmount,
-                        currency: payment.currency || (refundInfo.currency || 'USD'),
-                        date: new Date().toISOString(),
-                        status: 'REFUNDED',
-                        description: `Server-side refund for booking ${booking.id}`,
-                        userEmail: booking.userEmail,
-                        relatedPaymentId: payment.id,
-                        serverResponse: refundInfo
-                    };
-                    payments.push(refundRecord);
-                    localStorage.setItem('nh_payments', JSON.stringify(payments));
-                    booking.refund = { amount: refundAmount, date: refundRecord.date, id: refundId };
-                    alert(`Booking cancelled. Server-issued refund of ${formatCurrency(refundAmount, refundRecord.currency)} completed.`);
-                }
-
-                localStorage.setItem('nh_bookings', JSON.stringify(allBookings));
-                renderBookings();
-            } catch (err) {
-                console.error('Refund error:', err);
-                alert('Booking cancelled. Refund processing failed; please contact support.');
-                localStorage.setItem('nh_bookings', JSON.stringify(allBookings));
-                renderBookings();
             }
-        })();
-    }
+
+            if (!resp.ok) throw new Error(data?.error || 'Cancellation request failed');
+
+            // Update local cache and UI
+            const allBookings = JSON.parse(localStorage.getItem('nh_bookings') || '[]');
+            const idx = allBookings.findIndex(b => String(b.id) === String(bookingId));
+            if (idx >= 0) allBookings[idx] = data.booking;
+            localStorage.setItem('nh_bookings', JSON.stringify(allBookings));
+            renderBookings();
+            alert('Your cancellation request has been submitted and is pending admin approval.');
+        } catch (err) {
+            console.error('cancelBooking error', err);
+            alert('Unable to submit cancellation request: ' + (err.message || err));
+        }
+    })();
+    
 }
 
 // Close modal when clicking outside
 window.onclick = function(event) {
-    const modal = document.getElementById('extend-modal');
-    if (modal && event.target === modal) {
-        modal.style.display = 'none';
+    const extendModal = document.getElementById('extend-modal');
+    const cancelModal = document.getElementById('cancel-modal');
+    if (extendModal && event.target === extendModal) {
+        extendModal.style.display = 'none';
+    }
+    if (cancelModal && event.target === cancelModal) {
+        cancelModal.style.display = 'none';
     }
 };
 
@@ -473,7 +583,32 @@ function setupSmoothScroll() {
 // ============================================
 
 // Pricing constant used across booking/payment calculations
-const PRICE_PER_MONTH = 2500; // USD
+const PRICE_PER_MONTH = 2500; // USD (fallback)
+
+// Load properties from server into local cache for client-side pricing
+async function loadPropertiesIntoCache() {
+    try {
+        const base = await getPaymentsServer();
+        const resp = await fetch((base ? base : '') + '/api/properties');
+        if (!resp.ok) return;
+        const props = await resp.json().catch(() => []);
+        if (Array.isArray(props)) {
+            localStorage.setItem('nh_properties', JSON.stringify(props));
+        }
+    } catch (err) {
+        console.warn('Unable to load properties into cache', err);
+    }
+}
+
+function getRateForProperty(title) {
+    try {
+        const props = JSON.parse(localStorage.getItem('nh_properties') || '[]');
+        const found = props.find(p => String(p.title).trim().toLowerCase() === String(title).trim().toLowerCase());
+        return found ? Number(found.rate_per_month) : PRICE_PER_MONTH;
+    } catch (err) {
+        return PRICE_PER_MONTH;
+    }
+}
 
 
 function setupPropertyDetails() {
@@ -722,8 +857,35 @@ function addPaymentRecord(record) {
 }
 
 // Finalize a pending booking (if any) after receiving a payment record
-function finalizeBookingAfterPayment(paymentRecord) {
+async function finalizeBookingAfterPayment(paymentRecord) {
     try {
+        const pendingExtension = JSON.parse(localStorage.getItem('nh_pending_extension') || 'null');
+        if (pendingExtension) {
+            const session = getSession();
+            if (pendingExtension.userEmail && session && pendingExtension.userEmail !== session.email) return;
+
+            const bookings = JSON.parse(localStorage.getItem('nh_bookings') || '[]');
+            const booking = bookings.find(b => b.id === pendingExtension.bookingId);
+            if (!booking) {
+                console.error('No booking found for extension payment', pendingExtension.bookingId);
+                return;
+            }
+
+            booking.checkOut = pendingExtension.newCheckOut;
+            booking.paidAmount = Number((booking.paidAmount || 0) + paymentRecord.amount);
+            booking.extensionPaymentId = paymentRecord.id;
+            booking.extensionPaidAmount = paymentRecord.amount;
+            booking.extensionNights = pendingExtension.additionalNights;
+            booking.lastExtensionDate = new Date().toISOString();
+
+            localStorage.setItem('nh_bookings', JSON.stringify(bookings));
+            localStorage.removeItem('nh_pending_extension');
+
+            alert(`Stay extension confirmed!\nProperty: ${booking.property}\nNew check-out date: ${new Date(pendingExtension.newCheckOut).toLocaleDateString()}\nAmount paid: ${formatCurrency(paymentRecord.amount, paymentRecord.currency || 'USD')}`);
+            window.location.href = 'reservations.html';
+            return;
+        }
+
         const pending = JSON.parse(localStorage.getItem('nh_pending_booking') || 'null');
         if (!pending) return;
         const session = getSession();
@@ -732,6 +894,10 @@ function finalizeBookingAfterPayment(paymentRecord) {
         const booking = Object.assign({}, pending, {
             status: 'confirmed',
             paymentId: paymentRecord.id,
+            paymentAmount: paymentRecord.amount,
+            paymentCurrency: paymentRecord.currency || 'USD',
+            paymentProvider: paymentRecord.provider || 'unknown',
+            paymentCaptureId: paymentRecord.captureId || null,
             paidAmount: paymentRecord.amount,
             confirmedDate: new Date().toISOString()
         });
@@ -740,6 +906,11 @@ function finalizeBookingAfterPayment(paymentRecord) {
         bookings.push(booking);
         localStorage.setItem('nh_bookings', JSON.stringify(bookings));
         localStorage.removeItem('nh_pending_booking');
+        try {
+            await createBooking(booking);
+        } catch (err) {
+            console.warn('Unable to save booking to server, continuing with local storage.', err);
+        }
 
         alert(`Booking confirmed!\nProperty: ${booking.property}\nCheck-in: ${booking.checkIn}\nCheck-out: ${booking.checkOut}\nAmount paid: ${formatCurrency(booking.paidAmount, paymentRecord.currency || 'USD')}`);
         // Redirect to reservations page so user can view the confirmed booking
@@ -806,6 +977,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupAccountPage();
     setupPaymentForm();
     setupReservationsPage();
+    await setupAdminPage();
 
     // Load payment configuration from server and initialize SDKs
     const base = await getPaymentsServer();
@@ -826,6 +998,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     setupStripeAndPayPal();
     await checkStripeCheckoutResult();
+    // Load properties into local cache for client-side pricing
+    loadPropertiesIntoCache();
 
     console.log('Nyodera Heights website initialized successfully!');
 });
@@ -845,12 +1019,63 @@ function clearSession() {
     localStorage.removeItem('nh_session');
 }
 
-function loadUsers() {
-    try { return JSON.parse(localStorage.getItem('nh_users') || '[]'); } catch { return []; }
+async function apiRequest(path, options = {}) {
+    const base = await getPaymentsServer();
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    const url = base ? `${base}${cleanPath}` : cleanPath;
+
+    const fetchOptions = {
+        method: options.method || 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(options.headers || {})
+        },
+        body: options.body ? JSON.stringify(options.body) : undefined,
+    };
+
+    const response = await fetch(url, fetchOptions);
+    const text = await response.text();
+    let data;
+    try {
+        data = text ? JSON.parse(text) : {};
+    } catch {
+        data = { error: text };
+    }
+
+    if (!response.ok) {
+        throw new Error(data.error || response.statusText || 'Request failed');
+    }
+
+    return data;
 }
 
-function saveUsers(users) {
-    localStorage.setItem('nh_users', JSON.stringify(users));
+async function fetchUsersFromServer() {
+    return apiRequest('/api/users');
+}
+
+async function signupUser(name, email, password) {
+    return apiRequest('/api/auth/signup', { method: 'POST', body: { name, email, password } });
+}
+
+async function loginUser(email, password) {
+    return apiRequest('/api/auth/login', { method: 'POST', body: { email, password } });
+}
+
+async function changeUserPassword(email, currentPassword, newPassword) {
+    return apiRequest('/api/auth/password', { method: 'PATCH', body: { email, currentPassword, newPassword } });
+}
+
+async function createBooking(booking) {
+    return apiRequest('/api/bookings', { method: 'POST', body: booking });
+}
+
+async function fetchBookings() {
+    return apiRequest('/api/bookings');
+}
+
+function isAdminSession() {
+    const session = getSession();
+    return session?.role === 'admin';
 }
 
 function setupAuthNav() {
@@ -890,6 +1115,10 @@ function setupAuthNav() {
         if (!hasLink('account.html')) {
             const accountItem = createNavItem('account.html', 'Account');
             nav.appendChild(accountItem);
+        }
+        if (session.role === 'admin' && !hasLink('admin.html')) {
+            const adminItem = createNavItem('admin.html', 'Admin');
+            nav.appendChild(adminItem);
         }
         if (!nav.querySelector('#nav-logout-link')) {
             const logoutItem = createNavItem('#', 'Log Out', 'nav-logout-link');
@@ -942,7 +1171,7 @@ function setupAccountPage() {
         accountInfo.textContent = `Signed in as ${session.email}. Use the form below to change your password.`;
     }
 
-    accountForm.addEventListener('submit', (e) => {
+    accountForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const currentPassword = document.getElementById('current-password').value.trim();
         const newPassword = document.getElementById('new-password').value.trim();
@@ -966,25 +1195,15 @@ function setupAccountPage() {
             return;
         }
 
-        const users = loadUsers();
-        const user = users.find(u => u.email === session.email);
-        if (!user) {
-            accountMessage.textContent = 'Unable to find your user account.';
+        try {
+            await changeUserPassword(session.email, currentPassword, newPassword);
+            accountMessage.textContent = 'Password changed successfully.';
+            accountMessage.className = 'form-message success';
+            accountForm.reset();
+        } catch (err) {
+            accountMessage.textContent = err.message;
             accountMessage.className = 'form-message error';
-            return;
         }
-
-        if (user.password !== currentPassword) {
-            accountMessage.textContent = 'Current password is incorrect.';
-            accountMessage.className = 'form-message error';
-            return;
-        }
-
-        user.password = newPassword;
-        saveUsers(users);
-        accountMessage.textContent = 'Password changed successfully.';
-        accountMessage.className = 'form-message success';
-        accountForm.reset();
     });
 
     if (logoutButton) {
@@ -995,16 +1214,135 @@ function setupAccountPage() {
     }
 }
 
+async function setupAdminPage() {
+    const adminSection = document.getElementById('admin-dashboard');
+    if (!adminSection) return;
+
+    const session = getSession();
+    if (!session || session.role !== 'admin') {
+        adminSection.innerHTML = '<p class="form-message error">Admin access required. Please log in as the admin account.</p>';
+        setTimeout(() => { window.location.href = 'login.html'; }, 1200);
+        return;
+    }
+
+    let users = [];
+    try {
+        users = await fetchUsersFromServer();
+    } catch (err) {
+        users = [];
+        console.error('Unable to fetch users for admin page:', err);
+    }
+
+    const localBookings = JSON.parse(localStorage.getItem('nh_bookings') || '[]');
+    let bookings = localBookings;
+    const payments = JSON.parse(localStorage.getItem('nh_payments') || '[]');
+    // Try to fetch server-side bookings for authoritative data; preserve local cache if the server returns no bookings
+    try {
+        const base = await getPaymentsServer();
+        const resp = await fetch((base ? base : '') + '/api/bookings');
+        if (resp.ok) {
+            const serverBookings = await resp.json().catch(() => null);
+            if (Array.isArray(serverBookings)) {
+                if (serverBookings.length || !localBookings.length) {
+                    bookings = serverBookings;
+                    localStorage.setItem('nh_bookings', JSON.stringify(serverBookings));
+                }
+            }
+        }
+    } catch (err) {
+        console.warn('Unable to fetch server bookings for admin page', err);
+    }
+
+    const userRows = users.map(u => `
+        <tr>
+            <td>${u.name}</td>
+            <td>${u.email}</td>
+            <td>${u.role || 'user'}</td>
+        </tr>
+    `).join('');
+
+    const bookingRows = bookings.map(b => `
+        <tr>
+            <td>${b.id}</td>
+            <td>${b.property}</td>
+            <td>${b.userEmail || 'N/A'}</td>
+            <td>${b.checkIn}</td>
+            <td>${b.checkOut}</td>
+            <td>${b.status || 'unknown'}</td>
+            <td>
+                ${b.status === 'cancellation_pending' ? `
+                    <button class="btn-extend" onclick="approveCancellation('${b.id}')">Approve</button>
+                    <button class="btn-cancel" onclick="denyCancellation('${b.id}')">Deny</button>
+                ` : ''}
+            </td>
+        </tr>
+    `).join('');
+
+    const paymentRows = payments.map(p => `
+        <tr>
+            <td>${p.id}</td>
+            <td>${p.provider}</td>
+            <td>${p.last4 || ''}</td>
+            <td>${formatCurrency(p.amount, p.currency || 'USD')}</td>
+            <td>${new Date(p.date).toLocaleString()}</td>
+            <td>${p.status || 'unknown'}</td>
+        </tr>
+    `).join('');
+
+    // Fetch properties so admin can edit rates
+    let properties = [];
+    try {
+        const base = await getPaymentsServer();
+        const resp = await fetch((base ? base : '') + '/api/properties');
+        if (resp.ok) properties = await resp.json().catch(() => []);
+    } catch (err) {
+        console.warn('Unable to load properties for admin page', err);
+    }
+
+    const propertyRows = properties.map(p => `
+        <tr>
+            <td>${p.id}</td>
+            <td>${p.title}</td>
+            <td><input type="number" id="prop-rate-${p.id}" value="${p.rate_per_month}" style="width:120px" /></td>
+            <td style="white-space:nowrap"><button class="btn-extend" onclick="updatePropertyRate('${p.id}')">Save</button></td>
+            <td><span id="prop-status-${p.id}" class="prop-status info"></span></td>
+        </tr>
+    `).join('');
+
+    adminSection.innerHTML = `
+        <div class="admin-summary" style="margin-bottom:20px;">
+            <h2>Admin Dashboard</h2>
+            <p>Welcome, ${session.name}. You are signed in as admin.</p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:16px;">
+                <div class="admin-card">Users: ${users.length}</div>
+                <div class="admin-card">Bookings: ${bookings.length}</div>
+                <div class="admin-card">Payments: ${payments.length}</div>
+            </div>
+        </div>
+        <div style="margin-bottom:24px;">
+            <h3>Properties</h3>
+            <div id="property-message" class="form-message" style="display:none;margin-bottom:8px"></div>
+            <div class="table-container"><table><thead><tr><th>ID</th><th>Title</th><th>Monthly Rate (USD)</th><th>Actions</th><th>Status</th></tr></thead><tbody>${propertyRows}</tbody></table></div>
+        </div>
+        <div style="margin-bottom:24px;">
+            <h3>Registered Users</h3>
+            <div class="table-container"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th></tr></thead><tbody>${userRows}</tbody></table></div>
+        </div>
+        <div style="margin-bottom:24px;">
+            <h3>Bookings</h3>
+            <div class="table-container"><table><thead><tr><th>ID</th><th>Property</th><th>User</th><th>Check-in</th><th>Check-out</th><th>Status</th><th>Actions</th></tr></thead><tbody>${bookingRows}</tbody></table></div>
+        </div>
+        <div>
+            <h3>Payments</h3>
+            <div class="table-container"><table><thead><tr><th>ID</th><th>Provider</th><th>Last4</th><th>Amount</th><th>Date</th><th>Status</th></tr></thead><tbody>${paymentRows}</tbody></table></div>
+        </div>
+    `;
+}
+
 function setupAuthForms() {
     const signupForm = document.getElementById('signup-form');
     const loginForm = document.getElementById('login-form');
     const session = getSession();
-
-    function loadUsers() {
-        try { return JSON.parse(localStorage.getItem('nh_users') || '[]'); } catch { return []; }
-    }
-
-    function saveUsers(users) { localStorage.setItem('nh_users', JSON.stringify(users)); }
 
     if (signupForm) {
         if (session) {
@@ -1013,7 +1351,7 @@ function setupAuthForms() {
         }
 
         const msg = document.getElementById('signup-message');
-        signupForm.addEventListener('submit', (e) => {
+        signupForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = document.getElementById('signup-name').value.trim();
             const email = document.getElementById('signup-email').value.trim().toLowerCase();
@@ -1021,17 +1359,84 @@ function setupAuthForms() {
             const pass2 = document.getElementById('signup-password-confirm').value;
 
             if (!name || !email || !pass) {
-                msg.textContent = 'Please fill all fields.'; msg.className = 'form-message error'; return;
+                msg.textContent = 'Please fill all fields.';
+                msg.className = 'form-message error';
+                return;
             }
-            if (pass !== pass2) { msg.textContent = 'Passwords do not match.'; msg.className = 'form-message error'; return; }
+            if (pass !== pass2) {
+                msg.textContent = 'Passwords do not match.';
+                msg.className = 'form-message error';
+                return;
+            }
 
-            const users = loadUsers();
-            if (users.find(u => u.email === email)) { msg.textContent = 'Email already registered.'; msg.className = 'form-message error'; return; }
+            try {
+                const user = await signupUser(name, email, pass);
+                if (user && user.needsVerification) {
+                    // show OTP input and wait for verification
+                    showOtpForm(user.email);
+                    msg.textContent = 'A verification code was sent to your email. Enter it below.';
+                    msg.className = 'form-message info';
+                    return;
+                }
 
-            users.push({ name, email, password: pass });
-            saveUsers(users);
-            localStorage.setItem('nh_session', JSON.stringify({ email, name }));
-            window.location.href = 'index.html';
+                localStorage.setItem('nh_session', JSON.stringify({ email: user.email, name: user.name, role: user.role }));
+                window.location.href = 'index.html';
+            } catch (err) {
+                msg.textContent = err.message;
+                msg.className = 'form-message error';
+            }
+        });
+    }
+
+    // OTP verification form handlers
+    function showOtpForm(email) {
+        const container = document.querySelector('.contact-form-wrapper');
+        if (!container) return;
+        // avoid duplicating
+        if (document.getElementById('signup-otp-form')) return;
+
+        const otpHtml = `
+            <div id="signup-otp-form" style="margin-top:16px">
+                <label for="signup-otp">Verification Code</label>
+                <input id="signup-otp" type="text" style="width:200px;margin-left:8px" />
+                <button id="signup-verify-btn" class="btn-primary" style="margin-left:8px">Verify</button>
+                <button id="signup-resend-btn" class="btn-secondary" style="margin-left:8px">Resend</button>
+                <div id="signup-otp-message" style="margin-top:8px"></div>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', otpHtml);
+
+        document.getElementById('signup-verify-btn').addEventListener('click', async () => {
+            const code = document.getElementById('signup-otp').value.trim();
+            const otpMsg = document.getElementById('signup-otp-message');
+            if (!code) { otpMsg.textContent = 'Enter the code'; otpMsg.className = 'form-message error'; return; }
+            try {
+                const res = await apiRequest('/api/auth/verify-otp', { method: 'POST', body: { email, otp: code } });
+                // success — log in and redirect
+                localStorage.setItem('nh_session', JSON.stringify({ email: res.email, name: res.name, role: res.role }));
+                otpMsg.textContent = 'Email verified — redirecting...'; otpMsg.className = 'form-message success';
+                setTimeout(() => window.location.href = 'index.html', 900);
+            } catch (err) {
+                otpMsg.textContent = err.message || 'Verification failed'; otpMsg.className = 'form-message error';
+            }
+        });
+
+        const resendBtn = document.getElementById('signup-resend-btn');
+        document.getElementById('signup-resend-btn').addEventListener('click', async () => {
+            const otpMsg = document.getElementById('signup-otp-message');
+            try {
+                const res = await apiRequest('/api/auth/resend-otp', { method: 'POST', body: { email } });
+                otpMsg.textContent = 'OTP resent — check your email'; otpMsg.className = 'form-message info';
+                startResendCountdown(resendBtn, 60);
+            } catch (err) {
+                const wait = err?.waitSeconds || null;
+                if (wait) {
+                    otpMsg.textContent = `Please wait ${wait}s before resending.`; otpMsg.className = 'form-message error';
+                    startResendCountdown(resendBtn, wait);
+                } else {
+                    otpMsg.textContent = err.message || 'Unable to resend OTP'; otpMsg.className = 'form-message error';
+                }
+            }
         });
     }
 
@@ -1087,24 +1492,14 @@ function setupAuthForms() {
                     return;
                 }
 
-                const users = loadUsers();
-                const user = users.find(u => u.email === email);
-                if (!user) {
-                    forgotMsg.textContent = 'No account was found for that email.';
-                    forgotMsg.className = 'form-message error';
-                    return;
-                }
-
                 const tempPassword = Math.random().toString(36).slice(-8);
-                user.password = tempPassword;
-                saveUsers(users);
 
                 try {
                     const base = await getPaymentsServer();
                     const response = await fetch((base ? base : '') + '/send-reset-email', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email, name: user.name, tempPassword })
+                        body: JSON.stringify({ email, tempPassword })
                     });
                     let data;
                     const text = await response.text();
@@ -1152,24 +1547,176 @@ function setupAuthForms() {
             });
         }
 
-        loginForm.addEventListener('submit', (e) => {
+        loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('login-email').value.trim().toLowerCase();
             const pass = document.getElementById('login-password').value;
 
-            if (!email || !pass) { msg.textContent = 'Please enter email and password.'; msg.className = 'form-message error'; return; }
+            if (!email || !pass) {
+                msg.textContent = 'Please enter email and password.';
+                msg.className = 'form-message error';
+                return;
+            }
 
-            const users = loadUsers();
-            const user = users.find(u => u.email === email && u.password === pass);
-            if (!user) { msg.textContent = 'Invalid credentials.'; msg.className = 'form-message error'; return; }
-
-            msg.textContent = `Welcome back, ${user.name}! Redirecting to the home page...`;
-            msg.className = 'form-message success';
-            // Simulate session
-            localStorage.setItem('nh_session', JSON.stringify({ email: user.email, name: user.name }));
-            setTimeout(() => { window.location.href = 'index.html'; }, 900);
+            try {
+                const user = await loginUser(email, pass);
+                msg.textContent = `Welcome back, ${user.name}! Redirecting to the home page...`;
+                msg.className = 'form-message success';
+                localStorage.setItem('nh_session', JSON.stringify({ email: user.email, name: user.name, role: user.role || 'user' }));
+                setTimeout(() => { window.location.href = 'index.html'; }, 900);
+            } catch (err) {
+                const text = err.message || 'Login failed';
+                msg.textContent = text;
+                msg.className = 'form-message error';
+                // if login failed due to unverified email, show inline resend control
+                if (text.toLowerCase().includes('not verified')) {
+                    showLoginResend(email);
+                }
+            }
         });
     }
+
+    function showLoginResend(email) {
+        const existing = document.getElementById('login-resend');
+        if (existing) return;
+        const container = document.querySelector('.contact-form-wrapper');
+        if (!container) return;
+        const el = document.createElement('div');
+        el.id = 'login-resend';
+        el.style.marginTop = '12px';
+        el.innerHTML = `<span style="margin-right:8px">Didn't receive a code?</span><button id="login-resend-btn" class="btn-secondary">Resend verification</button><span id="login-resend-msg" style="margin-left:12px"></span>`;
+        container.appendChild(el);
+        const loginResendBtn = document.getElementById('login-resend-btn');
+        document.getElementById('login-resend-btn').addEventListener('click', async () => {
+            const msgSpan = document.getElementById('login-resend-msg');
+            try {
+                const res = await apiRequest('/api/auth/resend-otp', { method: 'POST', body: { email } });
+                msgSpan.textContent = 'Code resent — check your email';
+                msgSpan.className = 'form-message info';
+                startResendCountdown(loginResendBtn, 60);
+            } catch (err) {
+                const wait = err?.waitSeconds || null;
+                if (wait) {
+                    msgSpan.textContent = `Please wait ${wait}s before resending.`; msgSpan.className = 'form-message error';
+                    startResendCountdown(loginResendBtn, wait);
+                } else {
+                    msgSpan.textContent = err.message || 'Unable to resend';
+                    msgSpan.className = 'form-message error';
+                }
+            }
+        });
+    }
+
+    function startResendCountdown(button, seconds) {
+        if (!button) return;
+        let remaining = Number(seconds) || 60;
+        button.disabled = true;
+        const originalText = button.textContent;
+        button.textContent = `${originalText} (${remaining}s)`;
+        const iv = setInterval(() => {
+            remaining -= 1;
+            if (remaining <= 0) {
+                clearInterval(iv);
+                button.disabled = false;
+                button.textContent = originalText;
+                return;
+            }
+            button.textContent = `${originalText} (${remaining}s)`;
+        }, 1000);
+    }
+}
+
+// Admin: approve a pending cancellation and issue 50% refund
+async function approveCancellation(bookingId) {
+    if (!confirm('Approve cancellation and issue 50% refund for booking ' + bookingId + '?')) return;
+        try {
+            const base = await getPaymentsServer();
+            const resp = await fetch((base ? base : '') + `/api/bookings/${encodeURIComponent(bookingId)}/approve-cancellation`, { method: 'POST' });
+            const data = await resp.json().catch(() => null);
+            if (!resp.ok) throw new Error(data?.error || 'Approve failed');
+
+            // Update local cache
+            const allBookings = JSON.parse(localStorage.getItem('nh_bookings') || '[]');
+            const idx = allBookings.findIndex(b => String(b.id) === String(bookingId));
+            if (idx >= 0) allBookings[idx] = data.booking;
+            localStorage.setItem('nh_bookings', JSON.stringify(allBookings));
+            renderBookings();
+            await setupAdminPage();
+            alert('Cancellation approved and refund processed.');
+        } catch (err) {
+            console.error('approveCancellation error', err);
+            alert('Unable to approve cancellation: ' + (err.message || err));
+        }
+}
+
+// Admin: deny a pending cancellation request
+function denyCancellation(bookingId) {
+    if (!confirm('Deny cancellation request for booking ' + bookingId + '?')) return;
+    (async () => {
+        try {
+            const base = await getPaymentsServer();
+            const resp = await fetch((base ? base : '') + `/api/bookings/${encodeURIComponent(bookingId)}/deny-cancellation`, { method: 'POST' });
+            const data = await resp.json().catch(() => null);
+            if (!resp.ok) throw new Error(data?.error || 'Deny failed');
+
+            const allBookings = JSON.parse(localStorage.getItem('nh_bookings') || '[]');
+            const idx = allBookings.findIndex(b => String(b.id) === String(bookingId));
+            if (idx >= 0) allBookings[idx] = data.booking;
+            localStorage.setItem('nh_bookings', JSON.stringify(allBookings));
+            renderBookings();
+            setupAdminPage();
+            alert('Cancellation request denied.');
+        } catch (err) {
+            console.error('denyCancellation error', err);
+            alert('Unable to deny cancellation: ' + (err.message || err));
+        }
+    })();
+}
+
+// Update property monthly rate (admin)
+async function updatePropertyRate(propertyId) {
+    const input = document.getElementById(`prop-rate-${propertyId}`);
+    const statusEl = document.getElementById(`prop-status-${propertyId}`);
+    const saveBtn = document.querySelector(`button[onclick="updatePropertyRate('${propertyId}')"]`);
+    if (!input) return showPerPropertyStatus(propertyId, 'Rate input not found', 'error');
+    const value = Number(input.value);
+    if (isNaN(value) || value <= 0) return showPerPropertyStatus(propertyId, 'Enter a valid monthly rate', 'error');
+
+    try {
+        if (saveBtn) saveBtn.disabled = true;
+        showPerPropertyStatus(propertyId, 'Saving...', 'info');
+        const base = await getPaymentsServer();
+        const resp = await fetch((base ? base : '') + `/api/properties/${encodeURIComponent(propertyId)}`, {
+            method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rate_per_month: value })
+        });
+        const data = await resp.json().catch(() => null);
+        if (!resp.ok) throw new Error(data?.error || 'Update failed');
+        showPerPropertyStatus(propertyId, 'Saved', 'success');
+        // refresh admin page content to reflect new values
+        await setupAdminPage();
+    } catch (err) {
+        console.error('updatePropertyRate error', err);
+        showPerPropertyStatus(propertyId, 'Unable to update: ' + (err.message || err), 'error');
+    } finally {
+        if (saveBtn) saveBtn.disabled = false;
+    }
+}
+
+function showAdminPropertyMessage(text, type) {
+    const el = document.getElementById('property-message');
+    if (!el) return alert(text);
+    el.style.display = 'block';
+    el.textContent = text;
+    el.className = `form-message ${type || ''}`;
+    if (type === 'success') setTimeout(() => { el.style.display = 'none'; }, 2500);
+}
+
+function showPerPropertyStatus(propertyId, text, type) {
+    const el = document.getElementById(`prop-status-${propertyId}`);
+    if (!el) return showAdminPropertyMessage(text, type);
+    el.textContent = text;
+    el.className = `prop-status ${type || 'info'}`;
+    if (type === 'success') setTimeout(() => { el.textContent = ''; el.className = 'prop-status'; }, 2200);
 }
 
 // ============================================
@@ -1179,6 +1726,48 @@ function setupPaymentForm() {
     const form = document.getElementById('payment-form');
     const msg = document.getElementById('payment-message');
     if (!form) return;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const amountInput = document.getElementById('pay-amount');
+    const amountParam = urlParams.get('amount');
+    const extensionId = urlParams.get('extension_id');
+    const pendingExtension = extensionId ? getPendingExtension() : null;
+    const pendingBooking = extensionId ? null : JSON.parse(localStorage.getItem('nh_pending_booking') || 'null');
+
+    console.log('[Payments] setupPaymentForm params:', { amountParam, extensionId, pendingExtension, pendingBooking });
+
+    if (amountInput) {
+        if (amountParam && !Number.isNaN(Number(amountParam))) {
+            amountInput.value = Number(amountParam);
+            amountInput.readOnly = true;
+            amountInput.dataset.currency = 'USD';
+        } else if (pendingBooking && pendingBooking.amount) {
+            amountInput.value = Number(pendingBooking.amount);
+            amountInput.readOnly = true;
+            amountInput.dataset.currency = 'USD';
+            const paymentDetails = document.getElementById('payment-details');
+            if (paymentDetails) {
+                paymentDetails.textContent = `Pending reservation for ${pendingBooking.property}. Pay now to confirm.`;
+            }
+        }
+    }
+
+    const amountLabel = document.getElementById('pay-amount-label');
+    if (amountLabel && extensionId) {
+        amountLabel.textContent = 'Amount (USD) - Extension fee';
+    }
+
+    if (pendingExtension) {
+        const paymentDetails = document.getElementById('payment-details');
+        if (paymentDetails) {
+            paymentDetails.textContent = `Extension payment for booking ${pendingExtension.bookingId}.`;
+        }
+    } else if (pendingBooking) {
+        const paymentDetails = document.getElementById('payment-details');
+        if (paymentDetails) {
+            paymentDetails.textContent = `Reservation payment pending for ${pendingBooking.property}. Complete checkout to confirm.`;
+        }
+    }
 
     function show(type, text) {
         msg.textContent = text;
@@ -1195,11 +1784,21 @@ function setupPaymentForm() {
     const panel = document.querySelector('.payment-history-panel');
     const toggleBtn = document.getElementById('toggle-payments-visibility');
     const historyNote = document.getElementById('payments-history-note');
+    const searchInput = document.getElementById('payments-search');
     const visibilityKey = 'nh_payments_visible';
     const session = getSession();
+    const MPESA_EXCHANGE_RATE = 150; // 1 USD = 150 KES
 
     function isHistoryVisible() {
         return localStorage.getItem(visibilityKey) !== 'false';
+    }
+
+    function convertUsdToKes(value) {
+        return Math.round(Number(value) * MPESA_EXCHANGE_RATE);
+    }
+
+    function convertKesToUsd(value) {
+        return Number((Number(value) / MPESA_EXCHANGE_RATE).toFixed(2));
     }
 
     function updateHistoryPanelVisibility() {
@@ -1235,6 +1834,12 @@ function setupPaymentForm() {
         });
     }
 
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            renderPaymentHistory();
+        });
+    }
+
     updateHistoryPanelVisibility();
 
     function ownerPaymentRecord(record) {
@@ -1255,6 +1860,25 @@ function setupPaymentForm() {
         cardInputs.forEach(input => { input.disabled = method === 'mpesa'; });
         if (mpesaInput) mpesaInput.disabled = method !== 'mpesa';
         if (amountField) amountField.style.display = 'block';
+
+        if (amountInput) {
+            const currentCurrency = amountInput.dataset.currency || 'USD';
+            const currentValue = Number(amountInput.value) || 0;
+            if (method === 'mpesa' && currentCurrency === 'USD' && currentValue > 0) {
+                amountInput.dataset.usdValue = String(currentValue);
+                amountInput.value = convertUsdToKes(currentValue);
+                amountInput.dataset.currency = 'KES';
+            }
+            if (method !== 'mpesa' && currentCurrency === 'KES' && currentValue > 0) {
+                if (amountInput.dataset.usdValue) {
+                    amountInput.value = amountInput.dataset.usdValue;
+                } else {
+                    amountInput.value = convertKesToUsd(currentValue);
+                }
+                amountInput.dataset.currency = 'USD';
+            }
+        }
+
         const amountLabel = document.getElementById('pay-amount-label');
         if (amountLabel) {
             amountLabel.textContent = method === 'mpesa' ? 'Amount (KES)' : 'Amount (USD)';
@@ -1364,12 +1988,20 @@ function renderPaymentHistory() {
     }
 
     const payments = JSON.parse(localStorage.getItem('nh_payments') || '[]').filter(p => p.userEmail === session.email);
-    if (!payments.length) {
-        container.innerHTML = `<p style="color:#bbb">No payments found for ${session.email}.</p>`;
+    const searchTerm = (document.getElementById('payments-search')?.value || '').trim().toLowerCase();
+    const filteredPayments = searchTerm ? payments.filter(p => {
+        const id = String(p.id || '').toLowerCase();
+        const date = new Date(p.date || '').toLocaleString().toLowerCase();
+        const rawDate = String(p.date || '').toLowerCase();
+        return id.includes(searchTerm) || date.includes(searchTerm) || rawDate.includes(searchTerm);
+    }) : payments;
+
+    if (!filteredPayments.length) {
+        container.innerHTML = `<p style="color:#bbb">${payments.length ? `No matching payments found for "${searchTerm}".` : `No payments found for ${session.email}.`}</p>`;
         return;
     }
 
-    const rows = payments.slice().reverse().map(p => {
+    const rows = filteredPayments.slice().reverse().map(p => {
         const date = new Date(p.date);
         const currency = p.currency || 'USD';
         return `
