@@ -35,3 +35,14 @@ google-services.json
 
 # Ignore local environment files
 /server/.env
+
+# Node.js / npm
+node_modules/
+server/node_modules/
+package-lock.json
+yarn.lock
+
+# Jekyll build artifacts
+_site/
+.jekyll-cache/
+.bundle/
